@@ -145,6 +145,19 @@ function destroy_range(x, y0, y1)
 end
 
 function carve_circle(cx, cy, r)
+	-- AABB Bounds für Performance
+	local x_start = max(0, cx - r)
+	local x_end = min(cfg.world_w, cx + r)
+	
+	for x = x_start, x_end do
+		local dx = x - cx
+		if dx * dx <= r * r then
+			local dy = sqrt(r * r - dx * dx)
+			local y_top = cy - dy
+			local y_bottom = cy + dy
+			destroy_range(x, y_top, y_bottom)
+		end
+	end
 end
 
 function soil_coverage_pct()
@@ -171,6 +184,10 @@ function _init()
 	-- Enable devkit mode
 	genmap()
 	lastSoilPct = soil_coverage_pct()
+	for i = 1, 100 do
+		carve_circle(rnd(cfg.world_w), rnd(40) + 100, rnd(10) + 2)
+	end
+	
 end
 
 function _update60()
@@ -208,7 +225,9 @@ function _update60()
 end
 
 function drawmap()
-	for x = cam.x, cam.x + 128 do
+	local start_x = max(0, cam.x)
+	local end_x = min(cfg.world_w, cam.x + 128)
+	for x = start_x, end_x do
 		x = min(cfg.world_w, x)
 		-- scanline
 		local lines = terrain[x + 1]
