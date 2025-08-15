@@ -9,10 +9,12 @@ cfg = {
 	min_h = 60, max_h = 110,
 	slope_limit = 4,
 	target_coverage_pct = 50,
-	seed = 1
+	seed = 1,
+	cam_speed = 1
 }
 
 lastSoilPct = 0
+cam = { x = 0, y = 0}
 
 dbg_fns = {
 	fps = function() return stat(7) end, -- eigener fps-counter
@@ -171,8 +173,14 @@ function _init()
 	lastSoilPct = soil_coverage_pct()
 end
 
-function _update()
+function _update60()
 	-- Check for debug keys (G and D)
+	if btn(0) then
+		pancam(-1, 0)
+	end
+	if btn(1) then
+		pancam(1, 0)
+	end
 	if stat(30) then
 		-- A keypress is available
 		local key = stat(31) -- Get the pressed key
@@ -194,13 +202,21 @@ function _update()
 end
 
 function drawmap()
-	for x = 0, cfg.world_w do
+	for x = cam.x, cam.x + 128 do
 		-- scanline
 		local lines = terrain[x + 1]
 		for sl in all(lines) do
 			line(x, sl[1], x, sl[2] - 1, 8)
 		end
 	end
+end
+
+function pancam(x, y)
+
+	cam.x += x * cfg.cam_speed
+	cam.y += y * cfg.cam_speed
+	cam.x = clamp(cam.x, 0, 128)
+	cam.y = clamp(cam.y, 0, 128)
 end
 
 function drawdebug()
@@ -217,9 +233,10 @@ function drawdebug()
 end
 
 function _draw()
-	camera(0, 0)
+	camera(cam.x, cam.y)
 	cls(cfg.bg_col)
 	drawmap()
+	camera()
 	if cfg.debug then
 		drawdebug()
 	end
