@@ -7,7 +7,7 @@ cfg = {
 	cam_x = 0, cam_y = 0,
 	world_w = 256, world_h = 144,
 	min_h = 60, max_h = 110,
-	slope_limit = 1,
+	slope_limit = 4,
 	target_coverage_pct = 50,
 	seed = 1
 }
@@ -37,19 +37,41 @@ surface_y = {}
 function genmap()
 	terrain = {}
 	surface_y = {}
-	local y = 0
-	local y_prev = y
+	
+	-- Harmonische Parameter
+	local base_height = cfg.world_h * 0.6  -- Grundhれへhe bei ~55% (hれへher = mehr Coverage)
+	local wave1_amp = 20	-- Groれかe Hれもgel
+	local wave1_freq = 0.01 -- Langsame Frequenz
+	local wave2_amp = 4     -- Mittlere Details  
+	local wave2_freq = 0.06 -- Mittlere Frequenz
+	local wave3_amp = 1    -- Feine Details
+	local wave3_freq = 0.2  -- Schnelle Frequenz
+	
+	-- Seed-basierte Phasenverschiebung fれもr Variation
+	local phase1 = cfg.seed * 0.1
+	local phase2 = cfg.seed * 0.3  
+	local phase3 = cfg.seed * 0.9
+	
+	local y_prev = base_height
+	
 	for x = 0, cfg.world_w do
-		if x == 0 then y_prev = 98 end
-		local step = flr(rnd(5) - 2)
-		local y_proposed = y_prev + step
-		local y_next = clamp(y_proposed, y_prev - cfg.slope_limit, y_prev + cfg.slope_limit)
+		-- Harmonische れうberlagerung
+		local height_variation = 
+			sin((x * wave1_freq + phase1)) * wave1_amp +
+			sin((x * wave2_freq + phase2)) * wave2_amp +  
+			sin((x * wave3_freq + phase3)) * wave3_amp
+			
+		local y_target = base_height + height_variation
+		
+		-- Slope-Limit anwenden (aus deiner bisherigen Logik)
+		local y_next = clamp(y_target, y_prev - cfg.slope_limit, y_prev + cfg.slope_limit)
 		y_next = clamp(y_next, cfg.min_h, cfg.max_h)
 		y_prev = y_next
-
+		
 		add(surface_y, y_next)
 		local lines = {}
-
+		
+		-- Terrain-Sれさule von surface bis Boden
 		local line = { y_next, cfg.world_h }
 		add(lines, line)
 		add(terrain, lines)
