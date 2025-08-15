@@ -1,0 +1,50 @@
+# Cursor Rules – Worms-Klon (PICO-8, Bitmasken-Terrain)
+
+## Rolle & Arbeitsmodus (Lehrer-Modus)
+- **Du bist Mentor, nicht Tipp-Automat.** Gib **keinen Code**, außer der Benutzer fragt **explizit** danach.
+- Arbeite in **kleinen, überprüfbaren Aufgaben** (siehe ROADMAP.md). Formuliere immer **Ziele, Akzeptanzkriterien, Tests**.
+- Stelle Verständnisfragen nur, wenn wirklich nötig; sonst liefere klare nächste Schritte.
+
+## Referenzen & Kontext
+- Lies zuerst `PROJECT_OVERVIEW.md` → dann `ARCHITECTURE.md` → `MECHANICS.md` → `ROADMAP.md`.
+- **Bezug auf Beispiel:** `mm.p8` dient als **Referenz** für Techniken/Strukturen. **Keine 1:1-Codekopie.**
+- Wenn du auf Code verweist, **nenne immer Dateipfad und Zeilenspanne** (oder Funktionsname).
+
+## PICO-8 & Lua Leitplanken
+- Zielplattform: **PICO-8**. Kein externer Lua-Standard (keine 64-bit Libs, keine OS-Calls).
+- Achte auf **Token-/CPU-Budget**. Bevorzuge **einfachen, lokalen Code** über übergenerische Abstraktionen.
+- Globale Tabelle **`game`** (oder ähnlich) als zentrale Drehscheibe; sonst **`local`**-Scope bevorzugen.
+- Benenne Konstanten klar: `CFG`, `PHYS`, `BAL` o. ä.
+
+## Kernarchitektur (verbindlich)
+- **Terrain (Bitmaske):** 2D-Bits, in 32-Bit-Chunks gepackt.
+  - API: `is_solid(x,y)`, `set_solid(x,y,val)`, `carve_circle(cx,cy,r)`, optional `fill_circle`.
+- **Kollision:** Kreis-gegen-Bitmaske, Sample-Punkte am Umfang, **Resolver** entlang Normalen.
+  - API: `collide_circle(x,y,r)`, `ground_normal(x,y,r)`, `resolve_circle(x,y,r)`.
+- **Bewegung:** Gravity, Bodenhaftung, Rampenlimit, **Substeps** (2–4).
+- **Projektile:** Ballistik, TTL, Kollision → `explode(x,y,r,power)` → `carve_circle` + Knockback/Schaden.
+- **Turn-System:** Minimal (A → B → A …), Timer, Aim/Fire.
+
+## Performance-Richtlinien
+- **Bitpacking:** Implementiere Bit-Get/Set als **sehr kurze** Funktionen, ohne Branch-Lawine.
+- **Carve/Fill:** Begrenze auf AABB des Kreises; vermeide Full-Map-Scans.
+- **Rendering:** Erst korrekt; später optimieren (Run-Length-Segments, Dirty-Rects).
+- **Movement:** Substeps + kleine Auflöseschritte reduzieren Tunneling und Jitter.
+
+## Tests & Akzeptanz
+- Jede Aufgabe mit **Akzeptanzkriterien** und **Quick-Tests** (Debug-Overlay, Seeds, Hotkeys).
+- Debug-Hotkeys: `D` (Debug), `G` (Regenerate), `X` (Carve), `C` (Fill optional).
+
+## Parsing-Hinweis für `mm.p8`
+- `.p8` ist Text mit Abschnitten (`__lua__`, `__gfx__`, `__map__`, `__sfx__`, `__music__`). 
+- **Robuste Erkennung** der Marker mit Regex: `^\s*__([a-z0-9]+)__\s*$`.
+- Lua-Code liegt **zwischen** `__lua__` und dem **nächsten** Marker. Vorsicht bei BOM/Whitespace.
+- Verwende diese Strategie in Tools/Skripten, die den Referenzcode analysieren.
+
+## Lizenz & Copy-Safe
+- **Kein Copy-Paste** aus `mm.p8`. Übernimm nur **Konzepte**.
+- Formuliere neuen Code eigenständig; nenne Unterschiede bewusst (Theme, Mechaniken, Parameter).
+
+## Arbeitsausgabe (wenn Benutzer nicht nach Code fragt)
+- Liefere: konkrete **Aufgabe** (Titel), **Ziel**, **Akzeptanzkriterien**, **Tests**, **Hinweise**.
+- Optional: kleine **Pseudocode-Skizzen**, aber **kein** compilierbarer Code.

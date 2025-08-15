@@ -1,0 +1,23 @@
+# Versionskontrolle & Meta
+.git/
+.gitignore
+
+# Build- und Dist-Ordner
+dist/
+build/
+
+# Assets, die nicht für KI-Analyse gebraucht werden
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.psd
+*.wav
+*.mp3
+*.ogg
+*.zip
+*.7z
+
+# Systemdateien
+*.DS_Store
+Thumbs.db
