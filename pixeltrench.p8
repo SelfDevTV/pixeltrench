@@ -1,7 +1,7 @@
 pico-8 cartridge // http://www.pico-8.com
 version 42
 __lua__
-cfg = {
+ cfg = {
 	debug = true,
 	bg_col = 1,
 	cam_x = 0, cam_y = 0,
@@ -181,6 +181,12 @@ function _update60()
 	if btn(1) then
 		pancam(1, 0)
 	end
+	if btn(2) then
+		pancam(0, -1)
+	end
+	if btn(3) then
+		pancam(0, 1)
+	end
 	if stat(30) then
 		-- A keypress is available
 		local key = stat(31) -- Get the pressed key
@@ -203,6 +209,7 @@ end
 
 function drawmap()
 	for x = cam.x, cam.x + 128 do
+		x = min(cfg.world_w, x)
 		-- scanline
 		local lines = terrain[x + 1]
 		for sl in all(lines) do
@@ -215,8 +222,8 @@ function pancam(x, y)
 
 	cam.x += x * cfg.cam_speed
 	cam.y += y * cfg.cam_speed
-	cam.x = clamp(cam.x, 0, 128)
-	cam.y = clamp(cam.y, 0, 128)
+	cam.x = clamp(cam.x, 0, cfg.world_w - 128)
+	cam.y = clamp(cam.y, 0, cfg.world_h - 128)
 end
 
 function drawdebug()
