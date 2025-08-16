@@ -67,14 +67,16 @@ Diese Roadmap führt dich Schritt für Schritt durch die Entwicklung eines abges
 - Kriterien: korrekt bei Boden/Wand/Decke.
 - Status: erledigt am 2025-08-16. Implementierung mit 16 Sample-Punkten um Kreisumfang + Mittelpunkt-Test. Debug mit Z-Taste auf Position (64,92). Funktioniert korrekt.
 
-**3.2 – Normalschätzung [IN_PROGRESS]**
+**3.2 – Normalschätzung [ERLEDIGT]**
 
 - Ziel: `ground_normal` liefert Oberflächennormalen.
 - Kriterien: Normalenvektor (nx, ny) zeigt vom Terrain weg, funktioniert bei Boden/Wand/Decke.
+- Status: erledigt am 2025-08-16. Implementierung mit 16-Punkt-Sampling um Kreis, relative Vektoren sammeln, umkehren und normalisieren. Edge-Case mit l=0 abgefangen.
 
-**3.3 – Resolver**
+**3.3 – Resolver [IN_PROGRESS]**
 
 - Ziel: Wurm aus Terrain heraus schieben.
+- Kriterien: Ball wird korrekt aus Terrain geschoben, Geschwindigkeit reflektiert, keine Penetration.
 
 **3.4 – Movement v1**
 

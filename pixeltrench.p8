@@ -15,6 +15,7 @@ __lua__
 
 pi = 3.14
 tau = pi * 2
+grav = 0.05
 
 lastSoilPct = 0
 cam = { x = 0, y = 0}
@@ -44,6 +45,16 @@ end
 
 terrain = {}
 surface_y = {}
+
+local debug_ball = { 
+	x = 20,
+	y = 20,
+	dx = 0.8,
+	dy = 0.7,
+	r = 5,
+	max_bounce = 5
+	
+}
 
 function genmap()
 	terrain = {}
@@ -201,6 +212,38 @@ function soil_coverage_pct()
 	return (sum / cols) * 100
 end
 
+function ground_normal(a, b, r)
+	local sample_points = 16
+	local angle_step = 1 / sample_points
+	local normalX, normalY = 0, 0
+	for i = 0, sample_points - 1 do
+		local ang = i * angle_step
+		local x = a + r * cos(ang)
+		local y = b + r * sin(ang) 
+
+		if is_solid(x, y) then 
+			local dx = x - a
+			local dy = y - b
+			normalX += dx
+			normalY += dy
+		end
+	
+	end
+
+	-- normalX = -normalX
+	-- normalY = -normalY
+
+	local l = sqrt(normalX * normalX + normalY * normalY)
+	if l == 0 then
+		return nil, nil
+
+	end
+	normalX = normalX / l
+	normalY = normalY / l
+	return -normalX, -normalY
+
+end
+
 function _init()
 	poke(0x5f2d, 1)
 	set_seed(1)
@@ -215,6 +258,58 @@ end
 
 function _update60()
 	-- Check for debug keys (G and D)
+	if debug_ball.max_bounce > 0 then
+		debug_ball.dy += grav
+	end
+	local new_x = debug_ball.x +
+  debug_ball.dx
+  local new_y = debug_ball.y +
+  debug_ball.dy
+
+  -- 2. Kollision prüfen
+  if collide_circle(new_x, new_y,
+  debug_ball.r) then
+
+
+	debug_ball.max_bounce -= 1
+
+
+	if debug_ball.max_bounce <= 0 then
+		debug_ball.dx = 0
+		debug_ball.dy = 0
+		
+	else
+
+
+   local nx, ny = ground_normal(new_x,
+  new_y, debug_ball.r)
+
+  
+
+  local dot = debug_ball.dx * nx + debug_ball.dy * ny
+
+  debug_ball.dx = (debug_ball.dx - 2 * dot * nx) * 0.8
+  debug_ball.dy = (debug_ball.dy - 2 * dot * ny) * 0.8
+
+  debug_ball.x += debug_ball.dx
+  debug_ball.y += debug_ball.dy
+
+	end
+      -- 3. Normale holen und Ball 
+
+   
+
+      -- 4. Geschwindigkeit reflektieren
+      -- 5. Position korrigieren
+  else
+      -- Keine Kollision: normal bewegen
+      debug_ball.x = new_x
+      debug_ball.y = new_y
+  end
+
+
+	
+
 	if btn(0) then
 		pancam(-1, 0)
 	end
@@ -290,7 +385,7 @@ function _draw()
 	camera(cam.x, cam.y)
 	cls(cfg.bg_col)
 	drawmap()
-	circfill(64, 92, 10)
+	circ(debug_ball.x, debug_ball.y, debug_ball.r)
 	camera()
 	if cfg.debug then
 		drawdebug()
