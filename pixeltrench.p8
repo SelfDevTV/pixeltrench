@@ -7,7 +7,8 @@ __lua__
 	cam_x = 0, cam_y = 0,
 	world_w = 256, world_h = 144,
 	min_h = 60, max_h = 110,
-	slope_limit = 4,
+	slope_limit = 10,
+	max_slope = 1,
 	target_coverage_pct = 50,
 	seed = 1,
 	cam_speed = 1
@@ -54,6 +55,16 @@ local debug_ball = {
 	r = 5,
 	max_bounce = 5
 	
+}
+
+local worm = {
+	x = 30, 
+	y = 30,
+	vx = 0,
+	vy = 0,
+	r = 3,
+	jumping = false,
+
 }
 
 function genmap()
@@ -256,7 +267,74 @@ function _init()
 	
 end
 
+
+function jump(c_worm)
+	c_worm.vy = -1
+	c_worm.jumping = true
+end
+
+function find_surface_y(x, y)
+	x = flr(x)
+	y = flr(y)
+
+	for i = 0, cfg.max_slope do
+		if not is_solid(x, y - i) then return y - i end
+	end
+
+	return false
+end
+
+function find_ground_y(x, y)
+	x = flr(x)
+	y = flr(y)
+
+	for i = 0, cfg.max_slope do
+		if is_solid(x, y + i) then return y + i end
+	end
+	return false
+end
+
+function try_move(c_worm, dx, dy)
+	local foot_x, foot_y = c_worm.x, c_worm.y + c_worm.r + 1
+	local nx, ny = flr(foot_x + dx), flr(foot_y + dy)
+
+	local col = is_solid(nx, ny)
+
+	if col then
+		c_worm.jumping = false
+		c_worm.vy = 0
+		-- see how high the slope is, and push up
+		local surface_y = find_surface_y(nx, ny)
+
+		if surface_y then
+			c_worm.x += dx
+			c_worm.y = surface_y - c_worm.r  - 1
+		else
+			if is_solid(nx, c_worm.y) then return false end
+			local ground_y = find_ground_y(nx, c_worm.y)
+			if ground_y  then
+				c_worm.x += dx
+				c_worm.y = ground_y - c_worm.r - 1
+			else
+				c_worm.x += dx
+				-- worm falls
+				c_worm.vy += grav
+				
+			end
+		end
+		
+		return false
+	else
+		c_worm.x += dx
+		c_worm.y += dy
+		return true
+	end
+
+end
+
 function _update60()
+	worm.vx = 0
+	
 	-- Check for debug keys (G and D)
 	if debug_ball.max_bounce > 0 then
 		debug_ball.dy += grav
@@ -308,20 +386,26 @@ function _update60()
   end
 
 
-	
+	worm.vy += grav
+
 
 	if btn(0) then
-		pancam(-1, 0)
+		worm.vx = -0.2
+		-- pancam(-1, 0)
 	end
 	if btn(1) then
-		pancam(1, 0)
+		-- pancam(1, 0)
+		worm.vx = 0.2
 	end
-	if btn(2) then
-		pancam(0, -1)
+	if btn(2) and not worm.jumping then
+		jump(worm)
+		-- pancam(0, -1)
 	end
 	if btn(3) then
-		pancam(0, 1)
+		-- pancam(0, 1)
 	end
+
+	try_move(worm, worm.vx, worm.vy)
 
 	if btnp(4) then  -- Z-Taste
     	local test_result = collide_circle(64, 92, 10)
@@ -385,7 +469,8 @@ function _draw()
 	camera(cam.x, cam.y)
 	cls(cfg.bg_col)
 	drawmap()
-	circ(debug_ball.x, debug_ball.y, debug_ball.r)
+	--circ(debug_ball.x, debug_ball.y, debug_ball.r)
+	circfill(worm.x, worm.y, worm.r, 9)
 	camera()
 	if cfg.debug then
 		drawdebug()

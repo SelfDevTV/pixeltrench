@@ -73,20 +73,24 @@ Diese Roadmap führt dich Schritt für Schritt durch die Entwicklung eines abges
 - Kriterien: Normalenvektor (nx, ny) zeigt vom Terrain weg, funktioniert bei Boden/Wand/Decke.
 - Status: erledigt am 2025-08-16. Implementierung mit 16-Punkt-Sampling um Kreis, relative Vektoren sammeln, umkehren und normalisieren. Edge-Case mit l=0 abgefangen.
 
-**3.3 – Resolver [IN_PROGRESS]**
+**3.3 – Resolver [ERLEDIGT]**
 
 - Ziel: Wurm aus Terrain heraus schieben.
 - Kriterien: Ball wird korrekt aus Terrain geschoben, Geschwindigkeit reflektiert, keine Penetration.
+- Status: erledigt am 2025-08-16. Implementierung mit Geschwindigkeits-Reflektion via Dot Product, Dämpfung 0.8, Bounce-Counter. Physik funktioniert realistisch mit geringer visueller Penetration (akzeptabel für Prototyp).
 
-**3.4 – Movement v1**
+**3.4 – Movement v1 [ERLEDIGT]**
 
 - Ziel: Laufen, Gravity, Sprung, Steigungsgrenze.
+- Kriterien: Wurm läuft auf Terrain, springt, respektiert Steigungsgrenze, Bodenhaftung funktioniert.
+- Status: erledigt am 2025-08-16. Vollständige Implementierung mit Wurm-Objekt, Links/Rechts-Bewegung, Gravity, Sprung-Mechanik mit Anti-Doppelsprung, Steigungsgrenze via cfg.max_slope, automatisches Terrain-Following mit find_surface_y/find_ground_y.
 
 ## Phase 4 – Projektile & Explosion
 
-**4.1 – Projektilflug**
+**4.1 – Projektilflug [IN_PROGRESS]**
 
 - Ziel: Parabel, TTL.
+- Kriterien: Projektile fliegen in Parabel-Bahn, verschwinden nach Zeit, realistische Ballistik.
 
 **4.2 – Projektil-Kollision**
 
