@@ -37,38 +37,40 @@ Diese Roadmap führt dich Schritt für Schritt durch die Entwicklung eines abges
 - Tests: 20 Punkte setzen/prüfen.
 - Status: erledigt am 2025-08-12. Umsetzung via spaltenweisen Runs [y0,y1) mit `is_solid` und `destroy_range`; Rendering bis `y1-1`.
 
-**1.2 – Heightmap-Terrain**
+**1.2 – Heightmap-Terrain [ERLEDIGT]**
 
 - Ziel: Generator mit natürlicher Oberfläche.
 - Kriterien: 40–60 % Erde, drei Seeds erzeugen unterschiedliche Silhouetten.
 
-**1.3 – Renderer v1**
+**1.3 – Renderer v1 [ERLEDIGT]**
 
 - Ziel: Terrain sichtbar zeichnen.
 - Kriterien: 30–60 FPS, Kamera-Pan mit Pfeilen.
 
 ## Phase 2 – Zerstörung & Edit
 
-**2.1 – Carve Circle**
+**2.1 – Carve Circle [ERLEDIGT]**
 
 - Ziel: Bits im Kreis auf Luft setzen.
 - Kriterien: Krater ohne Pixelreste.
 
-**2.2 – Fill/Repair (optional)**
+**2.2 – Fill/Repair (optional) [CANCELED]**
 
 - Ziel: Bits im Kreis auf fest setzen.
 - Kriterien: Debug-Hilfe.
 
 ## Phase 3 – Kollision & Bewegung
 
-**3.1 – Punkt/Kreis-Test**
+**3.1 – Punkt/Kreis-Test [ERLEDIGT]**
 
 - Ziel: `collide_circle` prüft Kollision.
 - Kriterien: korrekt bei Boden/Wand/Decke.
+- Status: erledigt am 2025-08-16. Implementierung mit 16 Sample-Punkten um Kreisumfang + Mittelpunkt-Test. Debug mit Z-Taste auf Position (64,92). Funktioniert korrekt.
 
-**3.2 – Normalschätzung**
+**3.2 – Normalschätzung [IN_PROGRESS]**
 
 - Ziel: `ground_normal` liefert Oberflächennormalen.
+- Kriterien: Normalenvektor (nx, ny) zeigt vom Terrain weg, funktioniert bei Boden/Wand/Decke.
 
 **3.3 – Resolver**
 

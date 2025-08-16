@@ -13,16 +13,25 @@ __lua__
 	cam_speed = 1
 }
 
+pi = 3.14
+tau = pi * 2
+
 lastSoilPct = 0
 cam = { x = 0, y = 0}
+
+
 
 dbg_fns = {
 	fps = function() return stat(7) end, -- eigener fps-counter
 	time = function() return flr(t() * 100) / 100 end,
-	soil = function() return lastSoilPct end
+	soil = function() return lastSoilPct end,
+	custom = function () return dbg_custom end,
+
 }
 
-dbg_keys = { "fps", "time", "soil" }
+dbg_custom = ""
+
+dbg_keys = { "fps", "time", "soil", "custom" }
 
 function set_seed(seed)
 	cfg.seed = seed
@@ -145,7 +154,7 @@ function destroy_range(x, y0, y1)
 end
 
 function carve_circle(cx, cy, r)
-	-- AABB Bounds für Performance
+	-- AABB Bounds fれもr Performance
 	local x_start = max(0, cx - r)
 	local x_end = min(cfg.world_w, cx + r)
 	
@@ -158,6 +167,20 @@ function carve_circle(cx, cy, r)
 			destroy_range(x, y_top, y_bottom)
 		end
 	end
+end
+
+function collide_circle(a, b, r)
+	local sample_points = 16
+	local angle_step = 1 / sample_points
+	for i = 0, sample_points - 1 do
+		local ang = i * angle_step
+		local x = a + r * cos(ang)
+		local y = b + r * sin(ang) 
+		if is_solid(x, y) then return true end
+	end
+	if is_solid(a, b) then return true end
+
+	return false
 end
 
 function soil_coverage_pct()
@@ -184,9 +207,9 @@ function _init()
 	-- Enable devkit mode
 	genmap()
 	lastSoilPct = soil_coverage_pct()
-	for i = 1, 100 do
-		carve_circle(rnd(cfg.world_w), rnd(40) + 100, rnd(10) + 2)
-	end
+	-- for i = 1, 100 do
+	-- 	carve_circle(rnd(cfg.world_w), rnd(40) + 100, rnd(10) + 2)
+	-- end
 	
 end
 
@@ -203,6 +226,11 @@ function _update60()
 	end
 	if btn(3) then
 		pancam(0, 1)
+	end
+
+	if btnp(4) then  -- Z-Taste
+    	local test_result = collide_circle(64, 92, 10)
+		dbg_custom = "Collision test: " .. (test_result and "HIT" or "FREE")
 	end
 	if stat(30) then
 		-- A keypress is available
@@ -262,6 +290,7 @@ function _draw()
 	camera(cam.x, cam.y)
 	cls(cfg.bg_col)
 	drawmap()
+	circfill(64, 92, 10)
 	camera()
 	if cfg.debug then
 		drawdebug()
