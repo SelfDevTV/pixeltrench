@@ -8,7 +8,7 @@ cfg = {
 	world_w = 256, world_h = 144,
 	min_h = 60, max_h = 110,
 	slope_limit = 10,
-	max_slope = 1,
+	max_slope = 3,
 	target_coverage_pct = 50,
 	seed = 1,
 	cam_speed = 1
@@ -319,7 +319,7 @@ function try_move(c_worm, dx, dy)
 			c_worm.y = surface_y - c_worm.r - 1
 		else
 			if is_solid(nx, c_worm.y) then return false end
-			local ground_y = find_ground_y(nx, c_worm.y)
+			local ground_y = find_ground_y(nx, foot_y)
 			if ground_y then
 				c_worm.x += dx
 				c_worm.y = ground_y - c_worm.r - 1
@@ -426,7 +426,7 @@ function _update60()
 	local new_y = debug_ball.y
 			+ debug_ball.dy
 
-	-- 2. Kollision prüfen
+	-- 2. Kollision prれもfen
 	if collide_circle(
 		new_x, new_y,
 		debug_ball.r
