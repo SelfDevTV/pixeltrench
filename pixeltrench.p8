@@ -1,7 +1,7 @@
 pico-8 cartridge // http://www.pico-8.com
 version 42
 __lua__
- cfg = {
+cfg = {
 	debug = true,
 	bg_col = 1,
 	cam_x = 0, cam_y = 0,
@@ -19,16 +19,13 @@ tau = pi * 2
 grav = 0.05
 
 lastSoilPct = 0
-cam = { x = 0, y = 0}
-
-
+cam = { x = 0, y = 0 }
 
 dbg_fns = {
 	fps = function() return stat(7) end, -- eigener fps-counter
 	time = function() return flr(t() * 100) / 100 end,
 	soil = function() return lastSoilPct end,
-	custom = function () return dbg_custom end,
-
+	custom = function() return dbg_custom end
 }
 
 dbg_custom = ""
@@ -47,63 +44,71 @@ end
 terrain = {}
 surface_y = {}
 
-local debug_ball = { 
+local debug_ball = {
 	x = 20,
 	y = 20,
 	dx = 0.8,
 	dy = 0.7,
 	r = 5,
 	max_bounce = 5
-	
 }
 
 local worm = {
-	x = 30, 
+	x = 30,
 	y = 30,
 	vx = 0,
 	vy = 0,
 	r = 3,
 	jumping = false,
-
+	hp = 100,
+	max_hp = 100
 }
+
+projectiles = {}
 
 function genmap()
 	terrain = {}
 	surface_y = {}
-	
+
 	-- Harmonische Parameter
-	local base_height = cfg.world_h * 0.6  -- Grundhれへhe bei ~55% (hれへher = mehr Coverage)
-	local wave1_amp = 20	-- Groれかe Hれもgel
-	local wave1_freq = 0.01 -- Langsame Frequenz
-	local wave2_amp = 4     -- Mittlere Details  
-	local wave2_freq = 0.06 -- Mittlere Frequenz
-	local wave3_amp = 1    -- Feine Details
-	local wave3_freq = 0.2  -- Schnelle Frequenz
-	
+	local base_height = cfg.world_h * 0.6
+	-- Grundhれへhe bei ~55% (hれへher = mehr Coverage)
+	local wave1_amp = 20
+	-- Groれかe Hれもgel
+	local wave1_freq = 0.01
+	-- Langsame Frequenz
+	local wave2_amp = 4
+	-- Mittlere Details
+	local wave2_freq = 0.06
+	-- Mittlere Frequenz
+	local wave3_amp = 1
+	-- Feine Details
+	local wave3_freq = 0.2
+	-- Schnelle Frequenz
+
 	-- Seed-basierte Phasenverschiebung fれもr Variation
 	local phase1 = cfg.seed * 0.1
-	local phase2 = cfg.seed * 0.3  
+	local phase2 = cfg.seed * 0.3
 	local phase3 = cfg.seed * 0.9
-	
+
 	local y_prev = base_height
-	
+
 	for x = 0, cfg.world_w do
 		-- Harmonische れうberlagerung
-		local height_variation = 
-			sin((x * wave1_freq + phase1)) * wave1_amp +
-			sin((x * wave2_freq + phase2)) * wave2_amp +  
-			sin((x * wave3_freq + phase3)) * wave3_amp
-			
+		local height_variation = sin((x * wave1_freq + phase1)) * wave1_amp
+				+ sin((x * wave2_freq + phase2)) * wave2_amp
+				+ sin((x * wave3_freq + phase3)) * wave3_amp
+
 		local y_target = base_height + height_variation
-		
+
 		-- Slope-Limit anwenden (aus deiner bisherigen Logik)
 		local y_next = clamp(y_target, y_prev - cfg.slope_limit, y_prev + cfg.slope_limit)
 		y_next = clamp(y_next, cfg.min_h, cfg.max_h)
 		y_prev = y_next
-		
+
 		add(surface_y, y_next)
 		local lines = {}
-		
+
 		-- Terrain-Sれさule von surface bis Boden
 		local line = { y_next, cfg.world_h }
 		add(lines, line)
@@ -179,7 +184,7 @@ function carve_circle(cx, cy, r)
 	-- AABB Bounds fれもr Performance
 	local x_start = max(0, cx - r)
 	local x_end = min(cfg.world_w, cx + r)
-	
+
 	for x = x_start, x_end do
 		local dx = x - cx
 		if dx * dx <= r * r then
@@ -197,7 +202,7 @@ function collide_circle(a, b, r)
 	for i = 0, sample_points - 1 do
 		local ang = i * angle_step
 		local x = a + r * cos(ang)
-		local y = b + r * sin(ang) 
+		local y = b + r * sin(ang)
 		if is_solid(x, y) then return true end
 	end
 	if is_solid(a, b) then return true end
@@ -230,15 +235,14 @@ function ground_normal(a, b, r)
 	for i = 0, sample_points - 1 do
 		local ang = i * angle_step
 		local x = a + r * cos(ang)
-		local y = b + r * sin(ang) 
+		local y = b + r * sin(ang)
 
-		if is_solid(x, y) then 
+		if is_solid(x, y) then
 			local dx = x - a
 			local dy = y - b
 			normalX += dx
 			normalY += dy
 		end
-	
 	end
 
 	-- normalX = -normalX
@@ -247,12 +251,10 @@ function ground_normal(a, b, r)
 	local l = sqrt(normalX * normalX + normalY * normalY)
 	if l == 0 then
 		return nil, nil
-
 	end
 	normalX = normalX / l
 	normalY = normalY / l
 	return -normalX, -normalY
-
 end
 
 function _init()
@@ -264,18 +266,24 @@ function _init()
 	-- for i = 1, 100 do
 	-- 	carve_circle(rnd(cfg.world_w), rnd(40) + 100, rnd(10) + 2)
 	-- end
-	
-end
 
+	-- test
+	for i = 1, 10 do
+		local r = rnd(5) + 2
+		create_projectile(rnd(50), rnd(20), rnd() * 2, rnd() * 2, r, r + 2)
+	end
+end
 
 function jump(c_worm)
 	c_worm.vy = -1
 	c_worm.jumping = true
 end
 
-function find_surface_y(x, y)
+function find_surface_y(x, y, max)
 	x = flr(x)
 	y = flr(y)
+
+	max = max or cfg.max_slope
 
 	for i = 0, cfg.max_slope do
 		if not is_solid(x, y - i) then return y - i end
@@ -308,87 +316,48 @@ function try_move(c_worm, dx, dy)
 
 		if surface_y then
 			c_worm.x += dx
-			c_worm.y = surface_y - c_worm.r  - 1
+			c_worm.y = surface_y - c_worm.r - 1
 		else
 			if is_solid(nx, c_worm.y) then return false end
 			local ground_y = find_ground_y(nx, c_worm.y)
-			if ground_y  then
+			if ground_y then
 				c_worm.x += dx
 				c_worm.y = ground_y - c_worm.r - 1
 			else
 				c_worm.x += dx
 				-- worm falls
 				c_worm.vy += grav
-				
 			end
 		end
-		
+
 		return false
 	else
 		c_worm.x += dx
 		c_worm.y += dy
 		return true
 	end
-
 end
 
-function _update60()
+function create_projectile(x, y, vx, vy, r, explosion_radius, bounces)
+	local proj = {
+		x = x,
+		y = y,
+		vx = vx,
+		vy = vy,
+		r = r,
+		explosion_radius = explosion_radius,
+		bounces = bounces or 0,
+		alive = true,
+		-- 2 seconds
+		ttl = 10
+	}
+
+	add(projectiles, proj)
+end
+
+function update_worm()
 	worm.vx = 0
-	
-	-- Check for debug keys (G and D)
-	if debug_ball.max_bounce > 0 then
-		debug_ball.dy += grav
-	end
-	local new_x = debug_ball.x +
-  debug_ball.dx
-  local new_y = debug_ball.y +
-  debug_ball.dy
-
-  -- 2. Kollision prüfen
-  if collide_circle(new_x, new_y,
-  debug_ball.r) then
-
-
-	debug_ball.max_bounce -= 1
-
-
-	if debug_ball.max_bounce <= 0 then
-		debug_ball.dx = 0
-		debug_ball.dy = 0
-		
-	else
-
-
-   local nx, ny = ground_normal(new_x,
-  new_y, debug_ball.r)
-
-  
-
-  local dot = debug_ball.dx * nx + debug_ball.dy * ny
-
-  debug_ball.dx = (debug_ball.dx - 2 * dot * nx) * 0.8
-  debug_ball.dy = (debug_ball.dy - 2 * dot * ny) * 0.8
-
-  debug_ball.x += debug_ball.dx
-  debug_ball.y += debug_ball.dy
-
-	end
-      -- 3. Normale holen und Ball 
-
-   
-
-      -- 4. Geschwindigkeit reflektieren
-      -- 5. Position korrigieren
-  else
-      -- Keine Kollision: normal bewegen
-      debug_ball.x = new_x
-      debug_ball.y = new_y
-  end
-
-
 	worm.vy += grav
-
-
 	if btn(0) then
 		worm.vx = -0.2
 		-- pancam(-1, 0)
@@ -401,14 +370,103 @@ function _update60()
 		jump(worm)
 		-- pancam(0, -1)
 	end
+
+	try_move(worm, worm.vx, worm.vy)
+end
+
+function update_projectiles()
+	local time_per_frame = 1 / 60
+	for i = #projectiles, 1, -1 do
+		local proj = projectiles[i]
+		if not proj.alive then deli(projectiles, i) end
+		--proj.ttl -= time_per_frame
+		if proj.ttl <= 0 then
+			proj.alive = false
+			carve_circle(proj.x, proj.y, proj.explosion_radius)
+		else
+			proj.vy += grav
+
+			-- TODO(human): Implement raytracing collision detection here
+			-- Store old position, move projectile, then check path for collision
+
+			--local steps = max(flr(proj.vx), flr(proj.vy))
+			local dist = flr(sqrt(proj.vx * proj.vx + proj.vy * proj.vy))
+			local steps = max(1, dist)
+			local nx, ny = proj.x + proj.vx, proj.y + proj.vy
+
+			for i = 1, steps do
+				local move = i / steps
+				nx, ny = proj.x + proj.vx * move, proj.y + proj.vy * move
+				if collide_circle(nx, ny, proj.r) then
+					proj.alive = false
+					local ground_y = find_surface_y(nx, ny, 10)
+
+					carve_circle(nx, ny + proj.r + 1, proj.explosion_radius)
+					goto continue
+				else
+				end
+			end
+
+			::continue::
+			proj.x = nx
+			proj.y = ny
+		end
+	end
+end
+
+function _update60()
+	update_worm()
+	update_projectiles()
+	-- Check for debug keys (G and D)
+	if debug_ball.max_bounce > 0 then
+		debug_ball.dy += grav
+	end
+	local new_x = debug_ball.x
+			+ debug_ball.dx
+	local new_y = debug_ball.y
+			+ debug_ball.dy
+
+	-- 2. Kollision prüfen
+	if collide_circle(
+		new_x, new_y,
+		debug_ball.r
+	) then
+		debug_ball.max_bounce -= 1
+
+		if debug_ball.max_bounce <= 0 then
+			debug_ball.dx = 0
+			debug_ball.dy = 0
+		else
+			local nx, ny = ground_normal(
+				new_x,
+				new_y, debug_ball.r
+			)
+
+			local dot = debug_ball.dx * nx + debug_ball.dy * ny
+
+			debug_ball.dx = (debug_ball.dx - 2 * dot * nx) * 0.8
+			debug_ball.dy = (debug_ball.dy - 2 * dot * ny) * 0.8
+
+			debug_ball.x += debug_ball.dx
+			debug_ball.y += debug_ball.dy
+		end
+		-- 3. Normale holen und Ball
+
+		-- 4. Geschwindigkeit reflektieren
+		-- 5. Position korrigieren
+	else
+		-- Keine Kollision: normal bewegen
+		debug_ball.x = new_x
+		debug_ball.y = new_y
+	end
+
 	if btn(3) then
 		-- pancam(0, 1)
 	end
 
-	try_move(worm, worm.vx, worm.vy)
-
-	if btnp(4) then  -- Z-Taste
-    	local test_result = collide_circle(64, 92, 10)
+	if btnp(4) then
+		-- Z-Taste
+		local test_result = collide_circle(64, 92, 10)
 		dbg_custom = "Collision test: " .. (test_result and "HIT" or "FREE")
 	end
 	if stat(30) then
@@ -445,7 +503,6 @@ function drawmap()
 end
 
 function pancam(x, y)
-
 	cam.x += x * cfg.cam_speed
 	cam.y += y * cfg.cam_speed
 	cam.x = clamp(cam.x, 0, cfg.world_w - 128)
@@ -470,7 +527,14 @@ function _draw()
 	cls(cfg.bg_col)
 	drawmap()
 	--circ(debug_ball.x, debug_ball.y, debug_ball.r)
+
+	-- draw worms
 	circfill(worm.x, worm.y, worm.r, 9)
+
+	-- draw projs
+	for proj in all(projectiles) do
+		circfill(proj.x, proj.y, proj.r, 11)
+	end
 	camera()
 	if cfg.debug then
 		drawdebug()

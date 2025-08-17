@@ -87,18 +87,22 @@ Diese Roadmap führt dich Schritt für Schritt durch die Entwicklung eines abges
 
 ## Phase 4 – Projektile & Explosion
 
-**4.1 – Projektilflug [IN_PROGRESS]**
+**4.1 – Projektilflug [ERLEDIGT]**
 
 - Ziel: Parabel, TTL.
 - Kriterien: Projektile fliegen in Parabel-Bahn, verschwinden nach Zeit, realistische Ballistik.
+- Status: erledigt am 2025-08-17. Vollständige Implementierung mit create_projectile(), update_projectiles(), Gravity-basierter Ballistik, TTL-System, Kollisionserkennung und automatischer Explosion am Aufschlagpunkt.
 
-**4.2 – Projektil-Kollision**
+**4.2 – Projektil-Kollision [ERLEDIGT]**
 
-- Ziel: Treffererkennung ohne Tunneling.
+- Ziel: Treffererkennung ohne Tunneling, Kollisions-Verfeinerung.
+- Kriterien: Keine Projektile durchdringen Terrain bei hoher Geschwindigkeit, präzise Aufschlagpunkte, robuste Kollisionserkennung auch bei Edge-Cases.
+- Status: erledigt am 2025-08-17. Raytracing-basierte Kollisionserkennung mit sqrt-Distanz-Berechnung, schrittweiser Interpolation entlang Bewegungspfad, Explosion am exakten Aufschlagpunkt mit realistischem Offset (projektil_radius + 1) in den Boden.
 
-**4.3 – Explosion = Carve + Schaden**
+**4.3 – Explosion = Carve + Schaden [IN_PROGRESS]**
 
 - Ziel: Krater + Knockback + HP-Reduktion.
+- Kriterien: HP-System für Würmer, distanz-basierter Schaden, Knockback-Physik bei Explosionen, visuelle Schadens-Indikatoren.
 
 ## Phase 5 – Kamera, HUD, Turn-Loop
 
