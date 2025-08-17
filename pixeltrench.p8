@@ -303,7 +303,7 @@ function find_ground_y(x, y)
 end
 
 function try_move(c_worm, dx, dy)
-	local foot_x, foot_y = c_worm.x, c_worm.y + c_worm.r + 1
+	local foot_x, foot_y = c_worm.x, c_worm.y + c_worm.r
 	local nx, ny = flr(foot_x + dx), flr(foot_y + dy)
 
 	local col = is_solid(nx, ny)
@@ -316,13 +316,13 @@ function try_move(c_worm, dx, dy)
 
 		if surface_y then
 			c_worm.x += dx
-			c_worm.y = surface_y - c_worm.r - 1
+			c_worm.y = surface_y - c_worm.r
 		else
 			if is_solid(nx, c_worm.y) then return false end
 			local ground_y = find_ground_y(nx, foot_y)
 			if ground_y then
 				c_worm.x += dx
-				c_worm.y = ground_y - c_worm.r - 1
+				c_worm.y = ground_y - c_worm.r
 			else
 				c_worm.x += dx
 				-- worm falls
