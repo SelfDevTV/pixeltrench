@@ -2,44 +2,46 @@
 
 Diese Datei enthält die aktuellen Implementierungsaufgaben für die Weiterentwicklung des Pixel Trench Projekts.
 
-## 🎯 Aktuelle Aufgabe: Explosion mit Schaden/Knockback (Phase 4.3)
+## 🎯 Aktuelle Aufgabe: Aim & Shoot System (Phase 4.4)
 
-### **Strenge Implementierungsaufgabe: Explosion-System**
+### **Strenge Implementierungsaufgabe: Worm Shooting Mechanics**
 
 ● **Learn by Doing**
 
-**Context:** Du hast bereits HP zum Worm-Objekt hinzugefügt. Jetzt musst du das komplette Explosion-System implementieren, das Schaden basierend auf Distanz verursacht und Würmer wegschleudert. Explosionen sollen nicht nur Terrain zerstören, sondern auch strategisches Gameplay ermöglichen.
+**Context:** Du hast ein vollständiges Explosion-System. Jetzt braucht das Spiel echtes Worms-Gameplay: Zielen, Power aufladen und schießen! Das macht aus deinem Tech-Demo ein spielbares Game.
 
-**Your Task:** Erstelle eine `explode(cx, cy, radius, damage_radius)` Funktion und integriere sie in das Projektil-System. Die Funktion soll sowohl Terrain carven als auch Würmer schädigen und wegschleudern.
+**Your Task:** Implementiere ein komplettes Aim & Shoot System mit Ziel-Indikator, Power-Charging und Winkel-basiertem Projektil-Launch. Der Spieler soll strategisch zielen und die Schuss-Stärke kontrollieren können.
 
 **Guidance:** 
-- Berechne Distanz zwischen Explosion und Worm
-- Schaden umgekehrt proportional zur Distanz (näher = mehr Schaden)
-- Knockback-Vektor zeigt von Explosion weg
-- Knockback-Stärke abhängig von Schaden
-- Berücksichtige Terrain-Abschirmung (Line-of-Sight)
-- Visuelle Feedback für Schadenszahlen
+- Berechne Winkel von Worm zur Maus-Position (`atan2`)
+- Power-Charging: Taste halten = mehr Power (0-100%)
+- Visual Aim-Line: Zeige Schuss-Richtung an
+- Launch-Velocity: Winkel + Power → vx, vy Komponenten
+- Power-Indikator: Balken oder Kreis der größer wird
+- Schuss nur wenn Worm am Boden und alive
 
 **Strikte Erfolgskriterien:**
-1. ✅ Worm verliert HP basierend auf Explosions-Distanz
-2. ✅ Knockback schleudert Worm realistisch weg
-3. ✅ Terrain zwischen Explosion und Worm reduziert Schaden
-4. ✅ Worm stirbt bei HP ≤ 0 mit visueller Indication
-5. ✅ Schadenszahlen werden kurz angezeigt
+1. ✅ Ziel-Linie zeigt von Worm zur Maus-Position
+2. ✅ Power lädt auf während Taste gehalten (0-100%)
+3. ✅ Projektil startet mit korrektem Winkel und Geschwindigkeit
+4. ✅ Keine Schüsse während Worm in der Luft
+5. ✅ Power-Indikator ist visuell klar erkennbar
+6. ✅ Ein Schuss pro Turn (verhindert Spam)
 
-**Härtetest:** Explodiere neben dem Worm und schaue ob er Schaden nimmt und weggeschleudert wird!
+**Härtetest:** Verschiedene Winkel und Power-Level → Projektile landen vorhersagbar!
 
 ### Code-Location:
 - **Datei:** `pixeltrench.p8`
-- **Neue Funktion:** `explode(cx, cy, radius, damage_radius)`
-- **Integration:** In `update_projectiles()` bei Kollision
+- **Neue Systeme:** Aim calculation, Power charging, Projectile launch
+- **Integration:** In `update_worm()` und `_draw()`
 
 ### Status: 
-- [ ] explode() Funktion implementiert
-- [ ] Distanz-basierter Schaden funktioniert
-- [ ] Knockback-Physik implementiert
-- [ ] Line-of-Sight Terrain-Abschirmung
-- [ ] Visuelle Schadens-Indikatoren
+- [ ] Aim-Winkel von Worm zu Maus berechnet
+- [ ] Power-Charging System implementiert
+- [ ] Visual Aim-Line gezeichnet
+- [ ] Power-Indikator angezeigt
+- [ ] Projektil-Launch mit Winkel/Power
+- [ ] Turn-Management (ein Schuss pro Turn)
 
 ---
 

@@ -99,10 +99,16 @@ Diese Roadmap führt dich Schritt für Schritt durch die Entwicklung eines abges
 - Kriterien: Keine Projektile durchdringen Terrain bei hoher Geschwindigkeit, präzise Aufschlagpunkte, robuste Kollisionserkennung auch bei Edge-Cases.
 - Status: erledigt am 2025-08-17. Raytracing-basierte Kollisionserkennung mit sqrt-Distanz-Berechnung, schrittweiser Interpolation entlang Bewegungspfad, Explosion am exakten Aufschlagpunkt mit realistischem Offset (projektil_radius + 1) in den Boden.
 
-**4.3 – Explosion = Carve + Schaden [IN_PROGRESS]**
+**4.3 – Explosion = Carve + Schaden [ERLEDIGT]**
 
 - Ziel: Krater + Knockback + HP-Reduktion.
 - Kriterien: HP-System für Würmer, distanz-basierter Schaden, Knockback-Physik bei Explosionen, visuelle Schadens-Indikatoren.
+- Status: erledigt am 2025-08-17. Vollständiges Explosion-System mit HP-Management, distanz-basiertem Schaden, realistischer Knockback-Physik, Line-of-Sight Terrain-Abschirmung via Raycast, floating damage numbers und Mouse-Click-Testing.
+
+**4.4 – Aim & Shoot System [IN_PROGRESS]**
+
+- Ziel: Spielbare Worm-Steuerung mit Zielen, Power-Charging und Projektil-Launch.
+- Kriterien: Ziel-Indikator, Power-Charging via Tastendruck, Winkel-basierter Projektil-Launch, Turn-Management.
 
 ## Phase 5 – Kamera, HUD, Turn-Loop
 

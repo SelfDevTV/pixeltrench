@@ -54,17 +54,19 @@ local debug_ball = {
 }
 
 local worm = {
-	x = 30,
+	x = 50,
 	y = 30,
 	vx = 0,
 	vy = 0,
 	r = 3,
 	jumping = false,
-	hp = 100,
-	max_hp = 100
+	hp = 40,
+	max_hp = 100,
+	grounded = false
 }
 
 projectiles = {}
+damage_nums = {}
 
 function genmap()
 	terrain = {}
@@ -259,7 +261,7 @@ end
 
 function _init()
 	poke(0x5f2d, 1)
-	set_seed(1)
+	set_seed(rnd())
 	-- Enable devkit mode
 	genmap()
 	lastSoilPct = soil_coverage_pct()
@@ -268,13 +270,16 @@ function _init()
 	-- end
 
 	-- test
-	for i = 1, 10 do
-		local r = rnd(5) + 2
-		create_projectile(rnd(50), rnd(20), rnd() * 2, rnd() * 2, r, r + 2)
-	end
+	-- for i = 1, 10 do
+	-- 	local r = rnd(5) + 2
+	-- 	create_projectile(rnd(50), rnd(20), rnd() * 2, rnd() * 2, r, r + 2)
+	-- end
+
+	create_projectile(worm.x - 6, worm.y - 10, 0, 0, 4, 10)
 end
 
 function jump(c_worm)
+	worm.grounded = false
 	c_worm.vy = -1
 	c_worm.jumping = true
 end
@@ -302,13 +307,63 @@ function find_ground_y(x, y)
 	return false
 end
 
+function explode(cx, cy, damage_radius)
+	carve_circle(cx, cy, damage_radius)
+	local max_damage = 70
+	-- TODO(human): Step 1 - Calculate distance from explosion to worm
+	local dist = sqrt((cx - worm.x) ^ 2 + (cy - worm.y) ^ 2)
+	if dist <= damage_radius then
+		-- we hit the worm
+		-- check if terrain is between and block damage, reduce it
+		-- from the detonation y - some offset to destination the worm, check if some tiles are solid
+		local target_x, target_y = worm.x - cx, worm.y - cy
+		local step_x, step_y = target_x / dist, target_y / dist
+		local blocks_between = 0
+		for i = 1, flr(dist) do
+			if is_solid(cx + step_x * i, cy + step_y * i) then
+				blocks_between += 1
+			end
+		end
+
+		dbg_custom = "block between: " .. blocks_between
+		local damage_factor = (dist / damage_radius)
+		local damage = max_damage * damage_factor
+		worm.hp -= damage
+		create_damage_num(worm.x, worm.y - worm.r - 2, flr(damage))
+
+		-- TODO switch to a new state?!?
+
+		local push_x = worm.x - cx
+		local push_y = worm.y - cy
+
+		local len = sqrt(push_x * push_x + push_y * push_y)
+		if len == 0 then len = 1 end
+
+		local norm_x = push_x / len
+		local norm_y = push_y / len
+
+		local strength = damage_factor * 2
+		worm.y -= 2
+		worm.vx = norm_x * strength
+		worm.vy = norm_y * strength
+	end
+
+	-- end (close the damage radius check)
+end
+
+function is_grounded(c_worm)
+	return is_solid(c_worm.x, c_worm.y + c_worm.r + 1)
+end
+
 function try_move(c_worm, dx, dy)
 	local foot_x, foot_y = c_worm.x, c_worm.y + c_worm.r
 	local nx, ny = flr(foot_x + dx), flr(foot_y + dy)
 
 	local col = is_solid(nx, ny)
 
+	-- col in direction
 	if col then
+		c_worm.grounded = true
 		c_worm.jumping = false
 		c_worm.vy = 0
 		-- see how high the slope is, and push up
@@ -338,6 +393,34 @@ function try_move(c_worm, dx, dy)
 	end
 end
 
+function create_damage_num(x, y, amount)
+	local dam = {
+		x = x,
+		y = y,
+		amount = amount,
+		ttl = 0.4
+	}
+
+	add(damage_nums, dam)
+end
+
+function update_damage_nums()
+	for i = #damage_nums, 1, -1 do
+		local dam = damage_nums[i]
+		dam.y -= 0.3
+		dam.ttl -= 1 / 60
+		if dam.ttl <= 0 then
+			deli(damage_nums, i)
+		end
+	end
+end
+
+function draw_damage_nums()
+	for dam in all(damage_nums) do
+		print("- " .. dam.amount, dam.x, dam.y, 14)
+	end
+end
+
 function create_projectile(x, y, vx, vy, r, explosion_radius, bounces)
 	local proj = {
 		x = x,
@@ -356,14 +439,21 @@ function create_projectile(x, y, vx, vy, r, explosion_radius, bounces)
 end
 
 function update_worm()
-	worm.vx = 0
-	worm.vy += grav
-	if btn(0) then
+	worm.grounded = is_grounded(worm)
+	if not worm.grounded then
+		worm.vy += grav
+	else
+		worm.vx = 0
+	end
+
+	if btn(0) and worm.grounded then
 		worm.vx = -0.2
+
 		-- pancam(-1, 0)
 	end
-	if btn(1) then
+	if btn(1) and worm.grounded then
 		-- pancam(1, 0)
+
 		worm.vx = 0.2
 	end
 	if btn(2) and not worm.jumping then
@@ -382,11 +472,10 @@ function update_projectiles()
 		--proj.ttl -= time_per_frame
 		if proj.ttl <= 0 then
 			proj.alive = false
-			carve_circle(proj.x, proj.y, proj.explosion_radius)
+			explode(proj.x, proj.y, proj.explosion_radius)
 		else
 			proj.vy += grav
 
-			-- TODO(human): Implement raytracing collision detection here
 			-- Store old position, move projectile, then check path for collision
 
 			--local steps = max(flr(proj.vx), flr(proj.vy))
@@ -401,7 +490,8 @@ function update_projectiles()
 					proj.alive = false
 					local ground_y = find_surface_y(nx, ny, 10)
 
-					carve_circle(nx, ny + proj.r + 1, proj.explosion_radius)
+					-- explode(nx, ny + proj.r + 1, proj.explosion_radius, proj.explosion_radius * 2)
+					explode(nx, ny + proj.r + 1, proj.explosion_radius)
 					goto continue
 				else
 				end
@@ -415,8 +505,10 @@ function update_projectiles()
 end
 
 function _update60()
-	update_worm()
 	update_projectiles()
+	update_damage_nums()
+	update_worm()
+
 	-- Check for debug keys (G and D)
 	if debug_ball.max_bounce > 0 then
 		debug_ball.dy += grav
@@ -458,6 +550,12 @@ function _update60()
 		-- Keine Kollision: normal bewegen
 		debug_ball.x = new_x
 		debug_ball.y = new_y
+	end
+
+	mx, my = stat(32), stat(33)
+
+	if stat(34) == 1 and #projectiles == 0 then
+		create_projectile(mx, my, 0, 0, 4, 14)
 	end
 
 	if btn(3) then
@@ -535,7 +633,10 @@ function _draw()
 	for proj in all(projectiles) do
 		circfill(proj.x, proj.y, proj.r, 11)
 	end
+	draw_damage_nums()
 	camera()
+	-- draw mouse
+	circfill(mx, my, 2, 10)
 	if cfg.debug then
 		drawdebug()
 	end
