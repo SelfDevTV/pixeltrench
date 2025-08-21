@@ -11,8 +11,14 @@ cfg = {
 	max_slope = 3,
 	target_coverage_pct = 50,
 	seed = 1,
-	cam_speed = 1
+	cam_speed = 1,
+	buttons = {
+		shoot = 🅾️,
+		fn = ❎
+	}
 }
+
+fn_active = false
 
 pi = 3.14
 tau = pi * 2
@@ -62,7 +68,10 @@ local worm = {
 	jumping = false,
 	hp = 40,
 	max_hp = 100,
-	grounded = false
+	grounded = false,
+	aim_angle = 0,
+	-- 1 is to the right, -1 is to the left
+	facing = 1
 }
 
 projectiles = {}
@@ -448,17 +457,42 @@ function update_worm()
 
 	if btn(0) and worm.grounded then
 		worm.vx = -0.2
+		if worm.facing == 1 then
+			worm.facing = -1
+			worm.aim_angle += 0.5
+		end
 
 		-- pancam(-1, 0)
-	end
-	if btn(1) and worm.grounded then
+	elseif btn(1) and worm.grounded then
 		-- pancam(1, 0)
 
 		worm.vx = 0.2
+		if worm.facing == -1 then
+			worm.facing = 1
+			worm.aim_angle += 0.5
+		end
 	end
-	if btn(2) and not worm.jumping then
+	if btn(2) and not worm.jumping and not fn_active then
 		jump(worm)
 		-- pancam(0, -1)
+	end
+
+	if btn(2) and fn_active then
+		-- aim up
+		local inc = worm.facing
+		worm.aim_angle += 0.01 * worm.facing
+	end
+
+	if btn(3) and fn_active then
+		-- aim down
+		local inc = worm.facing
+		worm.aim_angle -= 0.01 * worm.facing
+	end
+
+	if worm.facing == 1 then
+		worm.aim_angle = clamp(worm.aim_angle, -0.1, 0.1)
+	else
+		worm.aim_angle = clamp(worm.aim_angle, 0.4, 0.6)
 	end
 
 	try_move(worm, worm.vx, worm.vy)
@@ -562,10 +596,14 @@ function _update60()
 		-- pancam(0, 1)
 	end
 
-	if btnp(4) then
+	if btn(cfg.buttons.fn) then
+		fn_active = true
+	else
+		fn_active = false
+	end
+
+	if btnp(cfg.buttons.shoot) then
 		-- Z-Taste
-		local test_result = collide_circle(64, 92, 10)
-		dbg_custom = "Collision test: " .. (test_result and "HIT" or "FREE")
 	end
 	if stat(30) then
 		-- A keypress is available
@@ -628,6 +666,11 @@ function _draw()
 
 	-- draw worms
 	circfill(worm.x, worm.y, worm.r, 9)
+	-- aim
+	local aim_x = worm.x + cos(worm.aim_angle) * (worm.r + 8)
+	local aim_y = worm.y + sin(worm.aim_angle) * (worm.r + 8)
+
+	circfill(aim_x, aim_y, 1, 14)
 
 	-- draw projs
 	for proj in all(projectiles) do
@@ -650,6 +693,6 @@ __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00077000070000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00077000777000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00700700070000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
