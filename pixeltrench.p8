@@ -5,13 +5,14 @@ cfg = {
 	debug = true,
 	bg_col = 1,
 	cam_x = 0, cam_y = 0,
+	cam_target = nil,
 	world_w = 256, world_h = 144,
 	min_h = 60, max_h = 110,
 	slope_limit = 10,
 	max_slope = 3,
 	target_coverage_pct = 50,
 	seed = 1,
-	cam_speed = 1,
+	cam_speed = 0.1,
 	buttons = {
 		shoot = 🅾️,
 		fn = ❎
@@ -25,7 +26,6 @@ tau = pi * 2
 grav = 0.05
 
 lastSoilPct = 0
-cam = { x = 0, y = 0 }
 
 dbg_fns = {
 	fps = function() return stat(7) end, -- eigener fps-counter
@@ -73,6 +73,8 @@ local worm = {
 	-- 1 is to the right, -1 is to the left
 	facing = 1
 }
+
+cfg.cam_target = worm
 
 projectiles = {}
 damage_nums = {}
@@ -334,7 +336,6 @@ function explode(cx, cy, damage_radius)
 			end
 		end
 
-		dbg_custom = "block between: " .. blocks_between
 		local damage_factor = (dist / damage_radius)
 		local damage = max_damage * damage_factor
 		worm.hp -= damage
@@ -538,10 +539,20 @@ function update_projectiles()
 	end
 end
 
+function update_cam()
+	cfg.cam_x = lerp(cfg.cam_x, cfg.cam_target.x, cfg.cam_speed)
+	cfg.cam_y = lerp(cfg.cam_y, cfg.cam_target.y, cfg.cam_speed)
+
+	-- Clamp camera to world bounds
+	cfg.cam_x = clamp(cfg.cam_x - 64, 0, cfg.world_w - 128) + 64
+	cfg.cam_y = clamp(cfg.cam_y - 64, 0, cfg.world_h - 128) + 64
+end
+
 function _update60()
 	update_projectiles()
 	update_damage_nums()
 	update_worm()
+	update_cam()
 
 	-- Check for debug keys (G and D)
 	if debug_ball.max_bounce > 0 then
@@ -589,7 +600,11 @@ function _update60()
 	mx, my = stat(32), stat(33)
 
 	if stat(34) == 1 and #projectiles == 0 then
-		create_projectile(mx, my, 0, 0, 4, 14)
+		-- Convert screen coordinates to world coordinates
+		local world_x = mx + (cfg.cam_x - 64)
+		local world_y = my + (cfg.cam_y - 64)
+		dbg_custom = "mx=" .. mx .. " cx=" .. flr(cfg.cam_x) .. " wx=" .. flr(world_x)
+		create_projectile(world_x, world_y, 0, 0, 4, 14)
 	end
 
 	if btn(3) then
@@ -626,23 +641,27 @@ function _update60()
 end
 
 function drawmap()
-	local start_x = max(0, cam.x)
-	local end_x = min(cfg.world_w, cam.x + 128)
+	local cam_x = flr(cfg.cam_x - 64)
+	local start_x = max(0, cam_x)
+	local end_x = min(cfg.world_w, cam_x + 128)
 	for x = start_x, end_x do
-		x = min(cfg.world_w, x)
 		-- scanline
 		local lines = terrain[x + 1]
-		for sl in all(lines) do
-			line(x, sl[1], x, sl[2] - 1, 8)
+		if not lines then
+			return
+		end
+		if #lines == 0 then
+			-- Fallback: draw minimal terrain at bottom if completely destroyed
+			--line(x, cfg.world_h - 5, x, cfg.world_h - 1, 8)
+		else
+			for sl in all(lines) do
+				if not sl or #sl < 2 then
+					return
+				end
+				line(x, sl[1], x, sl[2] - 1, 8)
+			end
 		end
 	end
-end
-
-function pancam(x, y)
-	cam.x += x * cfg.cam_speed
-	cam.y += y * cfg.cam_speed
-	cam.x = clamp(cam.x, 0, cfg.world_w - 128)
-	cam.y = clamp(cam.y, 0, cfg.world_h - 128)
 end
 
 function drawdebug()
@@ -659,7 +678,8 @@ function drawdebug()
 end
 
 function _draw()
-	camera(cam.x, cam.y)
+	local cam_x, cam_y = cfg.cam_x - 64, cfg.cam_y - 64
+	camera(cam_x, cam_y)
 	cls(cfg.bg_col)
 	drawmap()
 	--circ(debug_ball.x, debug_ball.y, debug_ball.r)
@@ -678,7 +698,7 @@ function _draw()
 	end
 	draw_damage_nums()
 	camera()
-	-- draw mouse
+	-- draw mouse (screen coordinates after camera reset)
 	circfill(mx, my, 2, 10)
 	if cfg.debug then
 		drawdebug()
@@ -687,6 +707,10 @@ end
 
 function clamp(v, lo, hi)
 	return mid(lo, v, hi)
+end
+
+function lerp(a, b, t)
+	return (1 - t) * a + b * t
 end
 
 __gfx__
