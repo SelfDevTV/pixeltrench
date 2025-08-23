@@ -540,12 +540,14 @@ function update_projectiles()
 end
 
 function update_cam()
-	cfg.cam_x = lerp(cfg.cam_x, cfg.cam_target.x, cfg.cam_speed)
-	cfg.cam_y = lerp(cfg.cam_y, cfg.cam_target.y, cfg.cam_speed)
+	-- cfg.cam_x = lerp(cfg.cam_x, cfg.cam_target.x, cfg.cam_speed)
+	-- cfg.cam_y = lerp(cfg.cam_y, cfg.cam_target.y, cfg.cam_speed)
+	cfg.cam_x = cfg.cam_target.x
+	cfg.cam_y = cfg.cam_target.y
 
 	-- Clamp camera to world bounds
-	cfg.cam_x = clamp(cfg.cam_x - 64, 0, cfg.world_w - 128) + 64
-	cfg.cam_y = clamp(cfg.cam_y - 64, 0, cfg.world_h - 128) + 64
+	cfg.cam_x = clamp(cfg.cam_x, 64, cfg.world_w - 64)
+	cfg.cam_y = clamp(cfg.cam_y, 64, cfg.world_h - 64)
 end
 
 function _update60()
@@ -640,8 +642,7 @@ function _update60()
 	end
 end
 
-function drawmap()
-	local cam_x = flr(cfg.cam_x - 64)
+function drawmap_with(cam_x)
 	local start_x = max(0, cam_x)
 	local end_x = min(cfg.world_w, cam_x + 128)
 	for x = start_x, end_x do
@@ -678,17 +679,18 @@ function drawdebug()
 end
 
 function _draw()
-	local cam_x, cam_y = cfg.cam_x - 64, cfg.cam_y - 64
+	local cam_x, cam_y = flr(cfg.cam_x - 64 + 0.5), flr(cfg.cam_y - 64 + 0.5)
 	camera(cam_x, cam_y)
 	cls(cfg.bg_col)
-	drawmap()
+	drawmap_with(cam_x)
 	--circ(debug_ball.x, debug_ball.y, debug_ball.r)
 
 	-- draw worms
-	circfill(worm.x, worm.y, worm.r, 9)
+	local rx, ry = flr(worm.x + 0.5), flr(worm.y + 0.5)
+	circfill(rx, ry, worm.r, 9)
 	-- aim
-	local aim_x = worm.x + cos(worm.aim_angle) * (worm.r + 8)
-	local aim_y = worm.y + sin(worm.aim_angle) * (worm.r + 8)
+	local aim_x = rx + cos(worm.aim_angle) * (worm.r + 8)
+	local aim_y = ry + sin(worm.aim_angle) * (worm.r + 8)
 
 	circfill(aim_x, aim_y, 1, 14)
 
