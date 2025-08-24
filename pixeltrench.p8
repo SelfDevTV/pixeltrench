@@ -369,6 +369,7 @@ function is_grounded(c_worm)
 end
 
 function try_move(c_worm, dx, dy)
+	-- TODO, do circle to terrain collision not just the foot
 	local foot_x, foot_y = c_worm.x, c_worm.y + c_worm.r
 	local nx, ny = flr(foot_x + dx), flr(foot_y + dy)
 
