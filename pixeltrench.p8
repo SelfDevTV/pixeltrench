@@ -8,8 +8,8 @@ cfg = {
 	cam_target = nil,
 	world_w = 256, world_h = 144,
 	min_h = 60, max_h = 110,
-	slope_limit = 10,
-	max_slope = 3,
+        slope_limit = 10,
+        max_slope = 4,
 	target_coverage_pct = 50,
 	seed = 1,
 	cam_speed = 0.1,
@@ -378,29 +378,63 @@ function is_grounded(c_worm)
 end
 
 function try_move(c_worm, dx, dy)
-	local nx, ny = c_worm.x + dx, c_worm.y + dy
-	if circle_collides(nx, ny, c_worm.r) then
-	        if not circle_collides(c_worm.x + dx, c_worm.y, c_worm.r) then
-	                c_worm.x += dx
-	        else
-	                c_worm.vx = 0
-	        end
-	        if not circle_collides(c_worm.x, c_worm.y + dy, c_worm.r) then
-	                c_worm.y += dy
-	                c_worm.grounded = false
-	        else
-	                if dy > 0 then
-	                        c_worm.grounded = true
-	                        c_worm.jumping = false
-	                end
-	                c_worm.vy = 0
-	        end
-	        return false
-	else
-	        c_worm.x = nx
-	        c_worm.y = ny
-	        return true
-	end
+        local r = c_worm.r
+
+        if dx ~= 0 then
+                local nx = c_worm.x + dx
+                if circle_collides(nx, c_worm.y, r) then
+                        local climbed = false
+                        for i = 1, cfg.max_slope do
+                                if not circle_collides(nx, c_worm.y - i, r) then
+                                        c_worm.x = nx
+                                        c_worm.y -= i
+                                        climbed = true
+                                        break
+                                end
+                        end
+                        if not climbed then
+                                c_worm.vx = 0
+                        end
+                else
+                        c_worm.x = nx
+                        local drop = 0
+                        while drop < cfg.max_slope and not circle_collides(c_worm.x, c_worm.y + drop + 1, r) do
+                                drop += 1
+                        end
+                        if drop > 0 and drop < cfg.max_slope and circle_collides(c_worm.x, c_worm.y + drop + 1, r) then
+                                c_worm.y += drop
+                        end
+                end
+        end
+
+        if dy ~= 0 then
+                local ny = c_worm.y + dy
+                if dy > 0 then
+                        if circle_collides(c_worm.x, ny, r) then
+                                while dy > 0 and not circle_collides(c_worm.x, c_worm.y + 1, r) do
+                                        c_worm.y += 1
+                                        dy -= 1
+                                end
+                                c_worm.vy = 0
+                                c_worm.jumping = false
+                        else
+                                c_worm.y = ny
+                        end
+                else
+                        if circle_collides(c_worm.x, ny, r) then
+                                while dy < 0 and not circle_collides(c_worm.x, c_worm.y - 1, r) do
+                                        c_worm.y -= 1
+                                        dy += 1
+                                end
+                                c_worm.vy = 0
+                        else
+                                c_worm.y = ny
+                        end
+                end
+        end
+
+        c_worm.grounded = is_grounded(c_worm)
+        if c_worm.grounded then c_worm.jumping = false end
 end
 
 function create_damage_num(x, y, amount)
