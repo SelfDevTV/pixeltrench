@@ -8,8 +8,8 @@ cfg = {
 	cam_target = nil,
 	world_w = 256, world_h = 144,
 	min_h = 60, max_h = 110,
-	slope_limit = 10,
-	max_slope = 3,
+        slope_limit = 10,
+        max_slope = 4,
 	target_coverage_pct = 50,
 	seed = 1,
 	cam_speed = 0.1,
@@ -141,6 +141,15 @@ function is_solid(x, y)
 		end
 	end
 
+	return false
+end
+
+function circle_collides(x, y, r)
+	for a = 0, 1, 0.125 do
+		local px = x + cos(a) * r
+		local py = y + sin(a) * r
+		if is_solid(px, py) then return true end
+	end
 	return false
 end
 
@@ -365,46 +374,76 @@ function explode(cx, cy, damage_radius)
 end
 
 function is_grounded(c_worm)
-	return is_solid(c_worm.x, c_worm.y + c_worm.r + 1)
+        -- sample a circle slightly below the worm to detect ground under any part
+        return circle_collides(c_worm.x, c_worm.y + 1, c_worm.r)
 end
 
 function try_move(c_worm, dx, dy)
-	-- TODO, do circle to terrain collision not just the foot
-	local foot_x, foot_y = c_worm.x, c_worm.y + c_worm.r
-	local nx, ny = flr(foot_x + dx), flr(foot_y + dy)
+        local r = c_worm.r
 
-	local col = is_solid(nx, ny)
+        if dx ~= 0 then
+                local nx = c_worm.x + dx
+                if circle_collides(nx, c_worm.y, r) then
+                        local climbed = false
+                        for i = 1, cfg.max_slope do
+                                if not circle_collides(nx, c_worm.y - i, r) then
+                                        c_worm.x = nx
+                                        c_worm.y -= i
+                                        climbed = true
+                                        break
+                                end
+                        end
+                        if not climbed then
+                                c_worm.vx = 0
+                                -- ensure the worm stays grounded if blocked by a steep slope
+                                local drop = 0
+                                while drop < cfg.max_slope and not circle_collides(c_worm.x, c_worm.y + drop + 1, r) do
+                                        drop += 1
+                                end
+                                if drop > 0 and drop < cfg.max_slope and circle_collides(c_worm.x, c_worm.y + drop + 1, r) then
+                                        c_worm.y += drop
+                                end
+                        end
+                else
+                        c_worm.x = nx
+                        local drop = 0
+                        while drop < cfg.max_slope and not circle_collides(c_worm.x, c_worm.y + drop + 1, r) do
+                                drop += 1
+                        end
+                        if drop > 0 and drop < cfg.max_slope and circle_collides(c_worm.x, c_worm.y + drop + 1, r) then
+                                c_worm.y += drop
+                        end
+                end
+        end
 
-	-- col in direction
-	if col then
-		c_worm.grounded = true
-		c_worm.jumping = false
-		c_worm.vy = 0
-		-- see how high the slope is, and push up
-		local surface_y = find_surface_y(nx, ny)
+        if dy ~= 0 then
+                local ny = c_worm.y + dy
+                if dy > 0 then
+                        if circle_collides(c_worm.x, ny, r) then
+                                while dy > 0 and not circle_collides(c_worm.x, c_worm.y + 1, r) do
+                                        c_worm.y += 1
+                                        dy -= 1
+                                end
+                                c_worm.vy = 0
+                                c_worm.jumping = false
+                        else
+                                c_worm.y = ny
+                        end
+                else
+                        if circle_collides(c_worm.x, ny, r) then
+                                while dy < 0 and not circle_collides(c_worm.x, c_worm.y - 1, r) do
+                                        c_worm.y -= 1
+                                        dy += 1
+                                end
+                                c_worm.vy = 0
+                        else
+                                c_worm.y = ny
+                        end
+                end
+        end
 
-		if surface_y then
-			c_worm.x += dx
-			c_worm.y = surface_y - c_worm.r
-		else
-			if is_solid(nx, c_worm.y) then return false end
-			local ground_y = find_ground_y(nx, foot_y)
-			if ground_y then
-				c_worm.x += dx
-				c_worm.y = ground_y - c_worm.r
-			else
-				c_worm.x += dx
-				-- worm falls
-				c_worm.vy += grav
-			end
-		end
-
-		return false
-	else
-		c_worm.x += dx
-		c_worm.y += dy
-		return true
-	end
+        c_worm.grounded = is_grounded(c_worm)
+        if c_worm.grounded then c_worm.jumping = false end
 end
 
 function create_damage_num(x, y, amount)
