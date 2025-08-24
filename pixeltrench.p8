@@ -374,7 +374,8 @@ function explode(cx, cy, damage_radius)
 end
 
 function is_grounded(c_worm)
-	return is_solid(c_worm.x, c_worm.y + c_worm.r + 1)
+        -- sample a circle slightly below the worm to detect ground under any part
+        return circle_collides(c_worm.x, c_worm.y + 1, c_worm.r)
 end
 
 function try_move(c_worm, dx, dy)
@@ -394,6 +395,14 @@ function try_move(c_worm, dx, dy)
                         end
                         if not climbed then
                                 c_worm.vx = 0
+                                -- ensure the worm stays grounded if blocked by a steep slope
+                                local drop = 0
+                                while drop < cfg.max_slope and not circle_collides(c_worm.x, c_worm.y + drop + 1, r) do
+                                        drop += 1
+                                end
+                                if drop > 0 and drop < cfg.max_slope and circle_collides(c_worm.x, c_worm.y + drop + 1, r) then
+                                        c_worm.y += drop
+                                end
                         end
                 else
                         c_worm.x = nx
