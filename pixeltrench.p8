@@ -144,6 +144,15 @@ function is_solid(x, y)
 	return false
 end
 
+function circle_collides(x, y, r)
+	for a = 0, 1, 0.125 do
+		local px = x + cos(a) * r
+		local py = y + sin(a) * r
+		if is_solid(px, py) then return true end
+	end
+	return false
+end
+
 function destroy_range(x, y0, y1)
 	local x = flr(x)
 	local y0, y1 = flr(y0), flr(y1)
@@ -369,41 +378,28 @@ function is_grounded(c_worm)
 end
 
 function try_move(c_worm, dx, dy)
-	-- TODO, do circle to terrain collision not just the foot
-	local foot_x, foot_y = c_worm.x, c_worm.y + c_worm.r
-	local nx, ny = flr(foot_x + dx), flr(foot_y + dy)
-
-	local col = is_solid(nx, ny)
-
-	-- col in direction
-	if col then
-		c_worm.grounded = true
-		c_worm.jumping = false
-		c_worm.vy = 0
-		-- see how high the slope is, and push up
-		local surface_y = find_surface_y(nx, ny)
-
-		if surface_y then
-			c_worm.x += dx
-			c_worm.y = surface_y - c_worm.r
-		else
-			if is_solid(nx, c_worm.y) then return false end
-			local ground_y = find_ground_y(nx, foot_y)
-			if ground_y then
-				c_worm.x += dx
-				c_worm.y = ground_y - c_worm.r
-			else
-				c_worm.x += dx
-				-- worm falls
-				c_worm.vy += grav
-			end
-		end
-
-		return false
+	local nx, ny = c_worm.x + dx, c_worm.y + dy
+	if circle_collides(nx, ny, c_worm.r) then
+	        if not circle_collides(c_worm.x + dx, c_worm.y, c_worm.r) then
+	                c_worm.x += dx
+	        else
+	                c_worm.vx = 0
+	        end
+	        if not circle_collides(c_worm.x, c_worm.y + dy, c_worm.r) then
+	                c_worm.y += dy
+	                c_worm.grounded = false
+	        else
+	                if dy > 0 then
+	                        c_worm.grounded = true
+	                        c_worm.jumping = false
+	                end
+	                c_worm.vy = 0
+	        end
+	        return false
 	else
-		c_worm.x += dx
-		c_worm.y += dy
-		return true
+	        c_worm.x = nx
+	        c_worm.y = ny
+	        return true
 	end
 end
 
