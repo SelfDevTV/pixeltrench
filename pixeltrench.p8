@@ -71,7 +71,10 @@ local worm = {
 	grounded = false,
 	aim_angle = 0,
 	-- 1 is to the right, -1 is to the left
-	facing = 1
+	facing = 1,
+	power = 0.1,
+	max_power = 10,
+	power_step = 0.4
 }
 
 cfg.cam_target = worm
@@ -619,9 +622,21 @@ function _update60()
 		fn_active = false
 	end
 
-	if btnp(cfg.buttons.shoot) then
-		-- Z-Taste
+	if btn(cfg.buttons.shoot) then
+		worm.power += worm.power_step
+		worm.power = min(worm.max_power, worm.power)
+		if worm.power == worm.max_power then
+			dbg_custom = "shoot now"
+			worm.power = 0
+			-- shoot
+		end
+	else
+		if worm.power > 0 then
+			worm.power = 0
+			-- shoot
+		end
 	end
+
 	if stat(30) then
 		-- A keypress is available
 		local key = stat(31) -- Get the pressed key
@@ -678,6 +693,25 @@ function drawdebug()
 	end
 end
 
+function draw_shoot_progress_bar()
+	local rx, ry = flr(worm.x + 0.5), flr(worm.y + 0.5)
+	local w, h = worm.r * 2 + 4, worm.r / 2
+
+	-- draw progress
+
+	local x1 = rx - worm.r - 2
+	local x2 = lerp(x1, rx + worm.r + 2, worm.power / worm.max_power)
+
+	if worm.power > 0 then
+		rectfill(x1, ry - worm.r - 4, x2, ry - worm.r - 2, 12)
+	end
+	-- draw border
+
+	if worm.power > 0 then
+		rect(rx - worm.r - 2, ry - worm.r - 4, rx + worm.r + 2, ry - worm.r - 2, 14)
+	end
+end
+
 function _draw()
 	local cam_x, cam_y = flr(cfg.cam_x - 64 + 0.5), flr(cfg.cam_y - 64 + 0.5)
 	camera(cam_x, cam_y)
@@ -693,6 +727,9 @@ function _draw()
 	local aim_y = ry + sin(worm.aim_angle) * (worm.r + 8)
 
 	circfill(aim_x, aim_y, 1, 14)
+
+	-- shoot progress
+	draw_shoot_progress_bar()
 
 	-- draw projs
 	for proj in all(projectiles) do
