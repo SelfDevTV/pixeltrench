@@ -72,7 +72,7 @@ local worm = {
 	aim_angle = 0,
 	-- 1 is to the right, -1 is to the left
 	facing = 1,
-	power = 0.1,
+	power = 0,
 	max_power = 10,
 	power_step = 0.4
 }
@@ -463,7 +463,8 @@ function update_worm()
 		worm.vx = -0.2
 		if worm.facing == 1 then
 			worm.facing = -1
-			worm.aim_angle += 0.5
+			-- mirror aim angle: right range [-0.2, 0.2] -> left range [0.7, 0.3]
+			worm.aim_angle = 0.5 - worm.aim_angle
 		end
 
 		-- pancam(-1, 0)
@@ -473,7 +474,8 @@ function update_worm()
 		worm.vx = 0.2
 		if worm.facing == -1 then
 			worm.facing = 1
-			worm.aim_angle += 0.5
+			-- mirror aim angle: left range [0.3, 0.7] -> right range [0.2, -0.2]
+			worm.aim_angle = 0.5 - worm.aim_angle
 		end
 	end
 	if btn(2) and not worm.jumping and not fn_active then
@@ -494,9 +496,9 @@ function update_worm()
 	end
 
 	if worm.facing == 1 then
-		worm.aim_angle = clamp(worm.aim_angle, -0.1, 0.1)
+		worm.aim_angle = clamp(worm.aim_angle, -0.2, 0.2)
 	else
-		worm.aim_angle = clamp(worm.aim_angle, 0.4, 0.6)
+		worm.aim_angle = clamp(worm.aim_angle, 0.3, 0.7)
 	end
 
 	try_move(worm, worm.vx, worm.vy)
@@ -512,7 +514,7 @@ function update_projectiles()
 			proj.alive = false
 			explode(proj.x, proj.y, proj.explosion_radius)
 		else
-			proj.vy += grav
+			proj.vy += grav * 2
 
 			-- Store old position, move projectile, then check path for collision
 
@@ -623,15 +625,28 @@ function _update60()
 	end
 
 	if btn(cfg.buttons.shoot) then
+		--(x, y, vx, vy, r, explosion_radius, bounces)
 		worm.power += worm.power_step
 		worm.power = min(worm.max_power, worm.power)
+
 		if worm.power == worm.max_power then
 			dbg_custom = "shoot now"
+			local aim_x = worm.x + cos(worm.aim_angle) * (worm.r + 1)
+			local aim_y = worm.y + sin(worm.aim_angle) * (worm.r + 1)
+			local dx = cos(worm.aim_angle) * worm.power * 0.3
+			local dy = sin(worm.aim_angle) * worm.power * 0.3
+
+			create_projectile(aim_x, aim_y, dx, dy, 2, 8)
 			worm.power = 0
 			-- shoot
 		end
 	else
 		if worm.power > 0 then
+			local dx = cos(worm.aim_angle) * worm.power * 0.3
+			local dy = sin(worm.aim_angle) * worm.power * 0.3
+			local aim_x = worm.x + cos(worm.aim_angle) * (worm.r + 1)
+			local aim_y = worm.y + sin(worm.aim_angle) * (worm.r + 1)
+			create_projectile(aim_x, aim_y, dx, dy, 2, 8)
 			worm.power = 0
 			-- shoot
 		end
