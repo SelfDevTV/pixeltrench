@@ -79,7 +79,13 @@ function create_worm(x, y)
         }
 end
 
-worms = {}
+function create_team()
+        return { worms = {} }
+end
+
+teams = {}
+active_team_idx = 1
+active_team = nil
 active_worm_idx = 1
 active_worm = nil
 
@@ -294,10 +300,24 @@ function _init()
         -- Enable devkit mode
         genmap()
         lastSoilPct = soil_coverage_pct()
-        -- spawn some worms
-        add(worms, create_worm(50, 30))
-        add(worms, create_worm(80, 30))
-        active_worm = worms[active_worm_idx]
+        -- create two teams with two worms each
+        local team1 = create_team()
+        local team2 = create_team()
+
+        add(team1.worms, create_worm(50, 30))
+        add(team1.worms, create_worm(80, 30))
+
+        add(team2.worms, create_worm(150, 30))
+        add(team2.worms, create_worm(180, 30))
+
+        for w in all(team1.worms) do w.team = team1 end
+        for w in all(team2.worms) do w.team = team2 end
+
+        add(teams, team1)
+        add(teams, team2)
+
+        active_team = teams[active_team_idx]
+        active_worm = active_team.worms[active_worm_idx]
         cfg.cam_target = active_worm
 
         -- create_projectile(active_worm.x - 6, active_worm.y - 10, 0, 0, 4, 10)
@@ -335,37 +355,39 @@ end
 function explode(cx, cy, damage_radius)
         carve_circle(cx, cy, damage_radius)
         local max_damage = 70
-        for w in all(worms) do
-                local dist = sqrt((cx - w.x) ^ 2 + (cy - w.y) ^ 2)
-                if dist <= damage_radius then
-                        -- check if terrain is between and block damage, reduce it
-                        local target_x, target_y = w.x - cx, w.y - cy
-                        local step_x, step_y = target_x / dist, target_y / dist
-                        local blocks_between = 0
-                        for i = 1, flr(dist) do
-                                if is_solid(cx + step_x * i, cy + step_y * i) then
-                                        blocks_between += 1
+        for t in all(teams) do
+                for w in all(t.worms) do
+                        local dist = sqrt((cx - w.x) ^ 2 + (cy - w.y) ^ 2)
+                        if dist <= damage_radius then
+                                -- check if terrain is between and block damage, reduce it
+                                local target_x, target_y = w.x - cx, w.y - cy
+                                local step_x, step_y = target_x / dist, target_y / dist
+                                local blocks_between = 0
+                                for i = 1, flr(dist) do
+                                        if is_solid(cx + step_x * i, cy + step_y * i) then
+                                                blocks_between += 1
+                                        end
                                 end
+
+                                local damage_factor = (dist / damage_radius)
+                                local damage = max_damage * damage_factor
+                                w.hp -= damage
+                                create_damage_num(w.x, w.y - w.r - 2, flr(damage))
+
+                                local push_x = w.x - cx
+                                local push_y = w.y - cy
+
+                                local len = sqrt(push_x * push_x + push_y * push_y)
+                                if len == 0 then len = 1 end
+
+                                local norm_x = push_x / len
+                                local norm_y = push_y / len
+
+                                local strength = damage_factor * 2
+                                w.y -= 2
+                                w.vx = norm_x * strength
+                                w.vy = norm_y * strength
                         end
-
-                        local damage_factor = (dist / damage_radius)
-                        local damage = max_damage * damage_factor
-                        w.hp -= damage
-                        create_damage_num(w.x, w.y - w.r - 2, flr(damage))
-
-                        local push_x = w.x - cx
-                        local push_y = w.y - cy
-
-                        local len = sqrt(push_x * push_x + push_y * push_y)
-                        if len == 0 then len = 1 end
-
-                        local norm_x = push_x / len
-                        local norm_y = push_y / len
-
-                        local strength = damage_factor * 2
-                        w.y -= 2
-                        w.vx = norm_x * strength
-                        w.vy = norm_y * strength
                 end
         end
 end
@@ -591,8 +613,10 @@ end
 function _update60()
         update_projectiles()
         update_damage_nums()
-        for w in all(worms) do
-                update_worm(w, w == active_worm)
+        for t in all(teams) do
+                for w in all(t.worms) do
+                        update_worm(w, w == active_worm)
+                end
         end
         cfg.cam_target = active_worm
         update_cam()
@@ -759,14 +783,16 @@ function _draw()
         cls(cfg.bg_col)
         drawmap_with(cam_x)
 
-        for w in all(worms) do
-                local rx, ry = flr(w.x + 0.5), flr(w.y + 0.5)
-                circfill(rx, ry, w.r, 9)
-                if w == active_worm then
-                        local aim_x = rx + cos(w.aim_angle) * (w.r + 8)
-                        local aim_y = ry + sin(w.aim_angle) * (w.r + 8)
-                        circfill(aim_x, aim_y, 1, 14)
-                        draw_shoot_progress_bar(w)
+        for t in all(teams) do
+                for w in all(t.worms) do
+                        local rx, ry = flr(w.x + 0.5), flr(w.y + 0.5)
+                        circfill(rx, ry, w.r, 9)
+                        if w == active_worm then
+                                local aim_x = rx + cos(w.aim_angle) * (w.r + 8)
+                                local aim_y = ry + sin(w.aim_angle) * (w.r + 8)
+                                circfill(aim_x, aim_y, 1, 14)
+                                draw_shoot_progress_bar(w)
+                        end
                 end
         end
 
