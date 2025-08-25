@@ -59,25 +59,31 @@ local debug_ball = {
 	max_bounce = 5
 }
 
-local worm = {
-	x = 50,
-	y = 30,
-	vx = 0,
-	vy = 0,
-	r = 3,
-	jumping = false,
-	hp = 40,
-	max_hp = 100,
-	grounded = false,
-	aim_angle = 0,
-	-- 1 is to the right, -1 is to the left
-	facing = 1,
-	power = 0,
-	max_power = 10,
-	power_step = 0.4
-}
+function create_worm(x, y)
+        return {
+                x = x,
+                y = y,
+                vx = 0,
+                vy = 0,
+                r = 3,
+                jumping = false,
+                hp = 40,
+                max_hp = 100,
+                grounded = false,
+                aim_angle = 0,
+                -- 1 is to the right, -1 is to the left
+                facing = 1,
+                power = 0,
+                max_power = 10,
+                power_step = 0.4
+        }
+end
 
-cfg.cam_target = worm
+worms = {}
+active_worm_idx = 1
+active_worm = nil
+
+cfg.cam_target = nil
 
 projectiles = {}
 damage_nums = {}
@@ -283,28 +289,24 @@ function ground_normal(a, b, r)
 end
 
 function _init()
-	poke(0x5f2d, 1)
-	set_seed(rnd())
-	-- Enable devkit mode
-	genmap()
-	lastSoilPct = soil_coverage_pct()
-	-- for i = 1, 100 do
-	-- 	carve_circle(rnd(cfg.world_w), rnd(40) + 100, rnd(10) + 2)
-	-- end
+        poke(0x5f2d, 1)
+        set_seed(rnd())
+        -- Enable devkit mode
+        genmap()
+        lastSoilPct = soil_coverage_pct()
+        -- spawn some worms
+        add(worms, create_worm(50, 30))
+        add(worms, create_worm(80, 30))
+        active_worm = worms[active_worm_idx]
+        cfg.cam_target = active_worm
 
-	-- test
-	-- for i = 1, 10 do
-	-- 	local r = rnd(5) + 2
-	-- 	create_projectile(rnd(50), rnd(20), rnd() * 2, rnd() * 2, r, r + 2)
-	-- end
-
-	create_projectile(worm.x - 6, worm.y - 10, 0, 0, 4, 10)
+        -- create_projectile(active_worm.x - 6, active_worm.y - 10, 0, 0, 4, 10)
 end
 
 function jump(c_worm)
-	worm.grounded = false
-	c_worm.vy = -1
-	c_worm.jumping = true
+        c_worm.grounded = false
+        c_worm.vy = -1
+        c_worm.jumping = true
 end
 
 function find_surface_y(x, y, max)
@@ -331,46 +333,41 @@ function find_ground_y(x, y)
 end
 
 function explode(cx, cy, damage_radius)
-	carve_circle(cx, cy, damage_radius)
-	local max_damage = 70
-	-- TODO(human): Step 1 - Calculate distance from explosion to worm
-	local dist = sqrt((cx - worm.x) ^ 2 + (cy - worm.y) ^ 2)
-	if dist <= damage_radius then
-		-- we hit the worm
-		-- check if terrain is between and block damage, reduce it
-		-- from the detonation y - some offset to destination the worm, check if some tiles are solid
-		local target_x, target_y = worm.x - cx, worm.y - cy
-		local step_x, step_y = target_x / dist, target_y / dist
-		local blocks_between = 0
-		for i = 1, flr(dist) do
-			if is_solid(cx + step_x * i, cy + step_y * i) then
-				blocks_between += 1
-			end
-		end
+        carve_circle(cx, cy, damage_radius)
+        local max_damage = 70
+        for w in all(worms) do
+                local dist = sqrt((cx - w.x) ^ 2 + (cy - w.y) ^ 2)
+                if dist <= damage_radius then
+                        -- check if terrain is between and block damage, reduce it
+                        local target_x, target_y = w.x - cx, w.y - cy
+                        local step_x, step_y = target_x / dist, target_y / dist
+                        local blocks_between = 0
+                        for i = 1, flr(dist) do
+                                if is_solid(cx + step_x * i, cy + step_y * i) then
+                                        blocks_between += 1
+                                end
+                        end
 
-		local damage_factor = (dist / damage_radius)
-		local damage = max_damage * damage_factor
-		worm.hp -= damage
-		create_damage_num(worm.x, worm.y - worm.r - 2, flr(damage))
+                        local damage_factor = (dist / damage_radius)
+                        local damage = max_damage * damage_factor
+                        w.hp -= damage
+                        create_damage_num(w.x, w.y - w.r - 2, flr(damage))
 
-		-- TODO switch to a new state?!?
+                        local push_x = w.x - cx
+                        local push_y = w.y - cy
 
-		local push_x = worm.x - cx
-		local push_y = worm.y - cy
+                        local len = sqrt(push_x * push_x + push_y * push_y)
+                        if len == 0 then len = 1 end
 
-		local len = sqrt(push_x * push_x + push_y * push_y)
-		if len == 0 then len = 1 end
+                        local norm_x = push_x / len
+                        local norm_y = push_y / len
 
-		local norm_x = push_x / len
-		local norm_y = push_y / len
-
-		local strength = damage_factor * 2
-		worm.y -= 2
-		worm.vx = norm_x * strength
-		worm.vy = norm_y * strength
-	end
-
-	-- end (close the damage radius check)
+                        local strength = damage_factor * 2
+                        w.y -= 2
+                        w.vx = norm_x * strength
+                        w.vy = norm_y * strength
+                end
+        end
 end
 
 function is_grounded(c_worm)
@@ -491,57 +488,53 @@ function create_projectile(x, y, vx, vy, r, explosion_radius, bounces)
 	add(projectiles, proj)
 end
 
-function update_worm()
-	worm.grounded = is_grounded(worm)
-	if not worm.grounded then
-		worm.vy += grav
-	else
-		worm.vx = 0
-	end
+function update_worm(c_worm, is_active)
+        c_worm.grounded = is_grounded(c_worm)
+        if not c_worm.grounded then
+                c_worm.vy += grav
+        else
+                c_worm.vx = 0
+        end
 
-	if btn(0) and worm.grounded then
-		worm.vx = -0.2
-		if worm.facing == 1 then
-			worm.facing = -1
-			-- mirror aim angle: right range [-0.2, 0.2] -> left range [0.7, 0.3]
-			worm.aim_angle = 0.5 - worm.aim_angle
-		end
+        if is_active then
+                if btn(0) and c_worm.grounded then
+                        c_worm.vx = -0.2
+                        if c_worm.facing == 1 then
+                                c_worm.facing = -1
+                                -- mirror aim angle: right range [-0.2, 0.2] -> left range [0.7, 0.3]
+                                c_worm.aim_angle = 0.5 - c_worm.aim_angle
+                        end
+                elseif btn(1) and c_worm.grounded then
+                        c_worm.vx = 0.2
+                        if c_worm.facing == -1 then
+                                c_worm.facing = 1
+                                -- mirror aim angle: left range [0.3, 0.7] -> right range [0.2, -0.2]
+                                c_worm.aim_angle = 0.5 - c_worm.aim_angle
+                        end
+                end
 
-		-- pancam(-1, 0)
-	elseif btn(1) and worm.grounded then
-		-- pancam(1, 0)
+                if btn(2) and not c_worm.jumping and not fn_active then
+                        jump(c_worm)
+                end
 
-		worm.vx = 0.2
-		if worm.facing == -1 then
-			worm.facing = 1
-			-- mirror aim angle: left range [0.3, 0.7] -> right range [0.2, -0.2]
-			worm.aim_angle = 0.5 - worm.aim_angle
-		end
-	end
-	if btn(2) and not worm.jumping and not fn_active then
-		jump(worm)
-		-- pancam(0, -1)
-	end
+                if btn(2) and fn_active then
+                        -- aim up
+                        c_worm.aim_angle += 0.01 * c_worm.facing
+                end
 
-	if btn(2) and fn_active then
-		-- aim up
-		local inc = worm.facing
-		worm.aim_angle += 0.01 * worm.facing
-	end
+                if btn(3) and fn_active then
+                        -- aim down
+                        c_worm.aim_angle -= 0.01 * c_worm.facing
+                end
+        end
 
-	if btn(3) and fn_active then
-		-- aim down
-		local inc = worm.facing
-		worm.aim_angle -= 0.01 * worm.facing
-	end
+        if c_worm.facing == 1 then
+                c_worm.aim_angle = clamp(c_worm.aim_angle, -0.2, 0.2)
+        else
+                c_worm.aim_angle = clamp(c_worm.aim_angle, 0.3, 0.7)
+        end
 
-	if worm.facing == 1 then
-		worm.aim_angle = clamp(worm.aim_angle, -0.2, 0.2)
-	else
-		worm.aim_angle = clamp(worm.aim_angle, 0.3, 0.7)
-	end
-
-	try_move(worm, worm.vx, worm.vy)
+        try_move(c_worm, c_worm.vx, c_worm.vy)
 end
 
 function update_projectiles()
@@ -596,10 +589,13 @@ function update_cam()
 end
 
 function _update60()
-	update_projectiles()
-	update_damage_nums()
-	update_worm()
-	update_cam()
+        update_projectiles()
+        update_damage_nums()
+        for w in all(worms) do
+                update_worm(w, w == active_worm)
+        end
+        cfg.cam_target = active_worm
+        update_cam()
 
 	-- Check for debug keys (G and D)
 	if debug_ball.max_bounce > 0 then
@@ -664,33 +660,31 @@ function _update60()
 		fn_active = false
 	end
 
-	if btn(cfg.buttons.shoot) then
-		--(x, y, vx, vy, r, explosion_radius, bounces)
-		worm.power += worm.power_step
-		worm.power = min(worm.max_power, worm.power)
+        local c_worm = active_worm
+        if btn(cfg.buttons.shoot) then
+                c_worm.power += c_worm.power_step
+                c_worm.power = min(c_worm.max_power, c_worm.power)
 
-		if worm.power == worm.max_power then
-			dbg_custom = "shoot now"
-			local aim_x = worm.x + cos(worm.aim_angle) * (worm.r + 1)
-			local aim_y = worm.y + sin(worm.aim_angle) * (worm.r + 1)
-			local dx = cos(worm.aim_angle) * worm.power * 0.3
-			local dy = sin(worm.aim_angle) * worm.power * 0.3
+                if c_worm.power == c_worm.max_power then
+                        dbg_custom = "shoot now"
+                        local aim_x = c_worm.x + cos(c_worm.aim_angle) * (c_worm.r + 1)
+                        local aim_y = c_worm.y + sin(c_worm.aim_angle) * (c_worm.r + 1)
+                        local dx = cos(c_worm.aim_angle) * c_worm.power * 0.3
+                        local dy = sin(c_worm.aim_angle) * c_worm.power * 0.3
 
-			create_projectile(aim_x, aim_y, dx, dy, 2, 8)
-			worm.power = 0
-			-- shoot
-		end
-	else
-		if worm.power > 0 then
-			local dx = cos(worm.aim_angle) * worm.power * 0.3
-			local dy = sin(worm.aim_angle) * worm.power * 0.3
-			local aim_x = worm.x + cos(worm.aim_angle) * (worm.r + 1)
-			local aim_y = worm.y + sin(worm.aim_angle) * (worm.r + 1)
-			create_projectile(aim_x, aim_y, dx, dy, 2, 8)
-			worm.power = 0
-			-- shoot
-		end
-	end
+                        create_projectile(aim_x, aim_y, dx, dy, 2, 8)
+                        c_worm.power = 0
+                end
+        else
+                if c_worm.power > 0 then
+                        local dx = cos(c_worm.aim_angle) * c_worm.power * 0.3
+                        local dy = sin(c_worm.aim_angle) * c_worm.power * 0.3
+                        local aim_x = c_worm.x + cos(c_worm.aim_angle) * (c_worm.r + 1)
+                        local aim_y = c_worm.y + sin(c_worm.aim_angle) * (c_worm.r + 1)
+                        create_projectile(aim_x, aim_y, dx, dy, 2, 8)
+                        c_worm.power = 0
+                end
+        end
 
 	if stat(30) then
 		-- A keypress is available
@@ -748,55 +742,43 @@ function drawdebug()
 	end
 end
 
-function draw_shoot_progress_bar()
-	local rx, ry = flr(worm.x + 0.5), flr(worm.y + 0.5)
-	local w, h = worm.r * 2 + 4, worm.r / 2
+function draw_shoot_progress_bar(c_worm)
+        local rx, ry = flr(c_worm.x + 0.5), flr(c_worm.y + 0.5)
+        local x1 = rx - c_worm.r - 2
+        local x2 = lerp(x1, rx + c_worm.r + 2, c_worm.power / c_worm.max_power)
 
-	-- draw progress
-
-	local x1 = rx - worm.r - 2
-	local x2 = lerp(x1, rx + worm.r + 2, worm.power / worm.max_power)
-
-	if worm.power > 0 then
-		rectfill(x1, ry - worm.r - 4, x2, ry - worm.r - 2, 12)
-	end
-	-- draw border
-
-	if worm.power > 0 then
-		rect(rx - worm.r - 2, ry - worm.r - 4, rx + worm.r + 2, ry - worm.r - 2, 14)
-	end
+        if c_worm.power > 0 then
+                rectfill(x1, ry - c_worm.r - 4, x2, ry - c_worm.r - 2, 12)
+                rect(rx - c_worm.r - 2, ry - c_worm.r - 4, rx + c_worm.r + 2, ry - c_worm.r - 2, 14)
+        end
 end
 
 function _draw()
-	local cam_x, cam_y = flr(cfg.cam_x - 64 + 0.5), flr(cfg.cam_y - 64 + 0.5)
-	camera(cam_x, cam_y)
-	cls(cfg.bg_col)
-	drawmap_with(cam_x)
-	--circ(debug_ball.x, debug_ball.y, debug_ball.r)
+        local cam_x, cam_y = flr(cfg.cam_x - 64 + 0.5), flr(cfg.cam_y - 64 + 0.5)
+        camera(cam_x, cam_y)
+        cls(cfg.bg_col)
+        drawmap_with(cam_x)
 
-	-- draw worms
-	local rx, ry = flr(worm.x + 0.5), flr(worm.y + 0.5)
-	circfill(rx, ry, worm.r, 9)
-	-- aim
-	local aim_x = rx + cos(worm.aim_angle) * (worm.r + 8)
-	local aim_y = ry + sin(worm.aim_angle) * (worm.r + 8)
+        for w in all(worms) do
+                local rx, ry = flr(w.x + 0.5), flr(w.y + 0.5)
+                circfill(rx, ry, w.r, 9)
+                if w == active_worm then
+                        local aim_x = rx + cos(w.aim_angle) * (w.r + 8)
+                        local aim_y = ry + sin(w.aim_angle) * (w.r + 8)
+                        circfill(aim_x, aim_y, 1, 14)
+                        draw_shoot_progress_bar(w)
+                end
+        end
 
-	circfill(aim_x, aim_y, 1, 14)
-
-	-- shoot progress
-	draw_shoot_progress_bar()
-
-	-- draw projs
-	for proj in all(projectiles) do
-		circfill(proj.x, proj.y, proj.r, 11)
-	end
-	draw_damage_nums()
-	camera()
-	-- draw mouse (screen coordinates after camera reset)
-	circfill(mx, my, 2, 10)
-	if cfg.debug then
-		drawdebug()
-	end
+        for proj in all(projectiles) do
+                circfill(proj.x, proj.y, proj.r, 11)
+        end
+        draw_damage_nums()
+        camera()
+        circfill(mx, my, 2, 10)
+        if cfg.debug then
+                drawdebug()
+        end
 end
 
 function clamp(v, lo, hi)
