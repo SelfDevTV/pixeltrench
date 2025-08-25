@@ -79,8 +79,8 @@ function create_worm(x, y)
         }
 end
 
-function create_team()
-        return { worms = {} }
+function create_team(col)
+        return { worms = {}, col = col }
 end
 
 teams = {}
@@ -301,8 +301,8 @@ function _init()
         genmap()
         lastSoilPct = soil_coverage_pct()
         -- create two teams with two worms each
-        local team1 = create_team()
-        local team2 = create_team()
+        local team1 = create_team(11) -- green
+        local team2 = create_team(9) -- orange
 
         add(team1.worms, create_worm(50, 30))
         add(team1.worms, create_worm(80, 30))
@@ -786,7 +786,7 @@ function _draw()
         for t in all(teams) do
                 for w in all(t.worms) do
                         local rx, ry = flr(w.x + 0.5), flr(w.y + 0.5)
-                        circfill(rx, ry, w.r, 9)
+                        circfill(rx, ry, w.r, w.team.col)
                         if w == active_worm then
                                 local aim_x = rx + cos(w.aim_angle) * (w.r + 8)
                                 local aim_y = ry + sin(w.aim_angle) * (w.r + 8)
