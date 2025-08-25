@@ -706,27 +706,53 @@ function _update60()
 	end
 end
 
+function height_tex(y)
+        -- choose a texture based on absolute height
+        local t = (y - cfg.min_h) / (cfg.max_h - cfg.min_h)
+        if t < 0.4 then
+                -- grass tile at (0,0)
+                return 0, 0
+        elseif t < 0.7 then
+                -- dirt tile at (8,0)
+                return 8, 0
+        else
+                -- rock tile at (16,0)
+                return 16, 0
+        end
+end
+
+-- draw a vertical line textured with an 8x8 tile
+function textured_line(x, y0, y1, tx, ty)
+        local y = y0
+        while y < y1 do
+                local seg_end = min(y + 8, y1)
+                tline(x, y, x, seg_end - 1, tx, ty, 0, 1)
+                y = seg_end
+        end
+end
+
 function drawmap_with(cam_x)
-	local start_x = max(0, cam_x)
-	local end_x = min(cfg.world_w, cam_x + 128)
-	for x = start_x, end_x do
-		-- scanline
-		local lines = terrain[x + 1]
-		if not lines then
-			return
-		end
-		if #lines == 0 then
-			-- Fallback: draw minimal terrain at bottom if completely destroyed
-			--line(x, cfg.world_h - 5, x, cfg.world_h - 1, 8)
-		else
-			for sl in all(lines) do
-				if not sl or #sl < 2 then
-					return
-				end
-				line(x, sl[1], x, sl[2] - 1, 8)
-			end
-		end
-	end
+        local start_x = max(0, cam_x)
+        local end_x = min(cfg.world_w, cam_x + 128)
+        for x = start_x, end_x do
+                -- scanline
+                local lines = terrain[x + 1]
+                if not lines then
+                        return
+                end
+                if #lines == 0 then
+                        -- Fallback: draw minimal terrain at bottom if completely destroyed
+                        --line(x, cfg.world_h - 5, x, cfg.world_h - 1, 8)
+                else
+                        for sl in all(lines) do
+                                if not sl or #sl < 2 then
+                                        return
+                                end
+                                local tx, ty = height_tex(sl[1])
+                                textured_line(x, sl[1], sl[2], tx, ty)
+                        end
+                end
+        end
 end
 
 function drawdebug()
