@@ -1,4 +1,4 @@
-local statemachine = {
+statemachine = {
     states = {},
     active_state = nil
 }
@@ -23,4 +23,3 @@ function statemachine:draw()
     self.active_state:draw()
 end
 
-return statemachine

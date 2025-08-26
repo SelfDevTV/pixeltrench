@@ -1,6 +1,10 @@
 pico-8 cartridge // http://www.pico-8.com
 version 42
 __lua__
+#include statemachine.lua
+#include states/endRound.lua
+#include states/play.lua
+#include states/projectileFollow.lua
 #include config.lua
 #include util.lua
 #include terrain.lua
@@ -9,6 +13,7 @@ __lua__
 #include worm.lua
 #include camera.lua
 #include debug.lua
+
 
 function _init()
   poke(0x5f2d, 1)
