@@ -1,0 +1,2 @@
+-- give the world a little cooldown to see death animations, particles fade etc.
+-- if stable - go to play state again

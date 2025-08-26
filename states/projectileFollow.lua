@@ -1,0 +1,2 @@
+-- cam follows projectile, worms control disabled
+-- after explosion or out of world bounds, switch to endRound state
