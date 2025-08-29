@@ -42,16 +42,24 @@ function _init()
   cfg.cam_target = active_worm
 
   -- create_projectile(active_worm.x - 6, active_worm.y - 10, 0, 0, 4, 10)
+
+  -- Register and activate game states.  Drawing and update logic are
+  -- delegated to the current state by the statemachine module.
+  statemachine:add("play", play_state)
+  statemachine:add("projectileFollow", projectile_follow_state)
+  statemachine:add("endRound", end_round_state)
+  statemachine:switch("play")
 end
 
 function _update60()
-  update_projectiles()
-  update_damage_nums()
-  for t in all(teams) do
-    for w in all(t.worms) do
-      update_worm(w, w == active_worm)
-    end
-  end
+  statemachine:update()
+  --update_projectiles()
+  --update_damage_nums()
+  -- for t in all(teams) do
+  --   for w in all(t.worms) do
+  --     update_worm(w, w == active_worm)
+  --   end
+  -- end
   cfg.cam_target = active_worm
   update_cam()
 
@@ -162,34 +170,13 @@ function _update60()
   end
 end
 
+-- Shared world rendering helper used by the central draw routine.
+#include render.lua
+
 function _draw()
-  local cam_x, cam_y = flr(cfg.cam_x - 64 + 0.5), flr(cfg.cam_y - 64 + 0.5)
-  camera(cam_x, cam_y)
-  cls(cfg.bg_col)
-  drawmap_with(cam_x)
-
-  for t in all(teams) do
-    for w in all(t.worms) do
-      local rx, ry = flr(w.x + 0.5), flr(w.y + 0.5)
-      circfill(rx, ry, w.r, w.team.col)
-      if w == active_worm then
-        local aim_x = rx + cos(w.aim_angle) * (w.r + 8)
-        local aim_y = ry + sin(w.aim_angle) * (w.r + 8)
-        circfill(aim_x, aim_y, 1, 14)
-        draw_shoot_progress_bar(w)
-      end
-    end
-  end
-
-  for proj in all(projectiles) do
-    circfill(proj.x, proj.y, proj.r, 11)
-  end
-  draw_damage_nums()
-  camera()
-  circfill(mx, my, 2, 10)
-  if cfg.debug then
-    drawdebug()
-  end
+  -- Show worm UI only while the play state is active.
+  local show_ui = statemachine.active_state == play_state
+  draw_world(show_ui)
 end
 
 __gfx__
