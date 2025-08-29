@@ -11,9 +11,13 @@ function end_round_state:enter(params)
   -- TODO: optionally start a countdown to let the world settle.
 end
 
--- TODO: Clean up temporary round data before the next turn begins.
+
 function end_round_state:exit()
-  -- TODO: reset timers or other state here.
+  -- reset any per-round timers or transient state
+  self.delay = 0
+  self.next_worm = nil
+  -- ensure camera targets the active worm for the next state
+  cfg.cam_target = active_worm
 end
 
 -- TODO: Wait for the world to settle, then advance to the next turn.

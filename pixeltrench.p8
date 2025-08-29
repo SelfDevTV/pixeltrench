@@ -52,13 +52,14 @@ function _init()
 end
 
 function _update60()
-  update_projectiles()
-  update_damage_nums()
-  for t in all(teams) do
-    for w in all(t.worms) do
-      update_worm(w, w == active_worm)
-    end
-  end
+  statemachine:update()
+  --update_projectiles()
+  --update_damage_nums()
+  -- for t in all(teams) do
+  --   for w in all(t.worms) do
+  --     update_worm(w, w == active_worm)
+  --   end
+  -- end
   cfg.cam_target = active_worm
   update_cam()
 
